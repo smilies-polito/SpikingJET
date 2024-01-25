@@ -1,0 +1,13 @@
+*.png
+*.txt
+*.sif
+__pycache__
+*.csv
+*.th
+*.pth
+*.pt
+*.npy
+*.npz
+*.hdf5
+*.tar.gz
+weights
