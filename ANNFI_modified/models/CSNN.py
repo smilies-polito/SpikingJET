@@ -54,4 +54,8 @@ class CSNN(nn.Module):
           spk_rec.append(spk3)
           # mem_rec.append(mem3)
 
-        return torch.stack(spk_rec)
+
+        spk_rec =torch.stack(spk_rec)  
+        _, results = spk_rec.sum(dim=0).max(1)
+
+        return results
