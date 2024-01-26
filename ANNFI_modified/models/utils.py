@@ -138,12 +138,13 @@ def load_DVSGesture_test_dataset(batch_size): # Not finished
     cached_testset = tonic.DiskCachedDataset(test_set, cache_path='./cache/dvsgesture/test')
     test_loader = torch.utils.data.DataLoader(cached_testset, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=tonic.collation.PadTensors(batch_first=False))
 
-    pass
+    return test_loader
 
 
 def load_from_dict(network, device, path, function=None):
     if '.th' in path:
-        state_dict = torch.load(path, map_location=device)['state_dict']
+        # state_dict = torch.load(path, map_location=device)['state_dict']
+        state_dict = torch.load(path, map_location=device)
     else:
         state_dict = torch.load(path, map_location=device)
 
