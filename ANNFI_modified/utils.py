@@ -36,7 +36,7 @@ def parse_args():
                         required=True,
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121'])
+                                 'DenseNet121', 'CSNN'])
 
     parsed_args = parser.parse_args()
 
