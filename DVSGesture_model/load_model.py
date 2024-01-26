@@ -22,9 +22,10 @@ import torch.nn as nn
 from datetime import datetime
 import os
 from Best_model import CSNN
+import numpy as np
 
 
-model_path = "/home/ldapusers/gogebakan/DVSGesture_model/2024_01_23-01_24_15_PM/weights/CSNN_DVSGesture.th"
+model_path = "/home/ldapusers/gogebakan/snn_fault_injection/DVSGesture_model/2024_01_26-02_12_04_PM/weights/CSNN_DVSGesture.th"
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 print("Device is: ", device)
@@ -52,17 +53,53 @@ net.load_state_dict(torch.load(model_path))
 
 print(net)
 
+injectable_layer_names = [name.replace('.weight', '') for name, module in net.named_modules()]
+print('injectable_layer_names', injectable_layer_names)
+
+print('net.named_parameters', net.named_parameters())
+for name, param in net.named_parameters():
+  print(name, param.shape)
+  print(param)
+  print()
+
+# List of the shape of all the layers that contain weight
+
+# net_layer_shape_beta = {name.replace('.beta', ''): param.shape for name, param in net.named_parameters()
+#                         if (name.replace('.beta', '') in injectable_layer_names)}
+
+# print('net_layer_shape_beta', net_layer_shape_beta)
+
+# net_layer_shape = {name.replace('.weight', ''): param.shape for name, param in net.named_parameters()
+#                         if (name.replace('.weight', '') in injectable_layer_names)}
+
+# print('net_layer_shape', net_layer_shape)
+
+exit()
+# List of the injectable params
+self.net_layer_params = {name.replace('.weight', ''): param for name, param in self.network.named_parameters()
+                          if name.replace('.weight', '') in injectable_layer_names}
+
+
+
+
+
+
+
 
 # Evaluate Test Set Accuracy
 correct = 0
 total = 0
 
 for i, (data, targets) in enumerate(iter(test_loader)):
-  data = nn.functional.interpolate(data, size=(2, 32, 32))
   data = data.to(device)
   targets = targets.to(device)
-  spk_rec = net.forward_pass(data)
-  correct += SF.accuracy_rate(spk_rec, targets) * spk_rec.size(1)
-  total += spk_rec.size(1)
+  outputs = net.forward_pass(data)
+  # print()
+
+
+  # print('targets.shape', targets.shape)
+  # print('outputs.shape', outputs.shape)
+  correct += np.mean((targets == outputs).detach().cpu().numpy()) * outputs.size(0)
+  total += outputs.size(0)
 
 print("Test Set Accuracy: ", (correct/total) * 100, "%")

@@ -106,7 +106,7 @@ class Net(nn.Module):
         super().__init__()
 
         #Initialize parameters
-        self.beta = 0.5
+        self.beta = torch.tensor([0.5])
         self.gradient = surrogate.fast_sigmoid(slope=25)
 
         # Initialize layers
