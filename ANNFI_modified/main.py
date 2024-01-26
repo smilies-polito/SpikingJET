@@ -3,7 +3,7 @@ import torch
 from FaultInjectionManager import FaultInjectionManager
 from FaultGenerators.FaultListGenerator import FaultListGenerator
 
-from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets
+from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets, load_DVSGesture_test_dataset
 
 from utils import load_network, get_device, parse_args, UnknownNetworkException, plot_distribution
 
@@ -31,8 +31,7 @@ def main(args):
     if 'ResNet' in args.network_name:
         _, _, loader = load_CIFAR10_datasets(test_batch_size=args.batch_size)
     elif 'CSNN' in args.network_name:
-        # loader = load_DVSGesture_dataset()
-        pass
+        loader = load_DVSGesture_test_dataset(batch_size=args.batch_size)
     else:
         loader = load_ImageNet_validation_set(batch_size=args.batch_size,
                                               image_per_class=1)
@@ -45,7 +44,7 @@ def main(args):
     fault_list = fault_manager.get_weight_fault_list(load_fault_list=True,
                                                      save_fault_list=True)
 
-
+    """
     # Execute the fault injection campaign with the smart network
     fault_injection_executor = FaultInjectionManager(network=network,
                                                      network_name=args.network_name,
@@ -56,7 +55,7 @@ def main(args):
     fault_injection_executor.run_clean()
     #This function runs fault injections
     fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
-    
+    """
 
 if __name__ == '__main__':
     main(args=parse_args())
