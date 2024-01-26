@@ -30,8 +30,9 @@ class FaultListGenerator:
         self.device = device
 
         # Name of the injectable layers
-        injectable_layer_names = [name.replace('.weight', '') for name, module in self.network.named_modules()
-                                  if isinstance(module, module_classes)]
+        # injectable_layer_names = [name.replace('.weight', '') for name, module in self.network.named_modules()
+        #                           if isinstance(module, module_classes)]
+        injectable_layer_names = [name.replace('.weight', '') for name, module in self.network.named_modules()]
 
         # List of the shape of all the layers that contain weight
         self.net_layer_shape = {name.replace('.weight', ''): param.shape for name, param in self.network.named_parameters()
