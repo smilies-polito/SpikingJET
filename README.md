@@ -35,16 +35,17 @@ After create it once you don't have recreate it everytime. Whenever you want to 
 
 ## TODO
 
-Prior
--[] Run Fault injection with CSNN_DVSGesture
-    -[x] Create a singularity container that can be used for ANNFI and CSNN_DVSGesture models
-    -[x] Understand how to place our module to existing framework
-        -[x] Modify codes for data loader
-        -[x] Modify codes for model architecture (e.g. include interpolation on forward pass)
-    -[] Check beta and membrane threshold values
-        -[] Right now, there is one beta value for each layer. Modify it so that there is a beta value for each neuron.
-    -[] Inject fault on membrane potentials.
+
+### Prior
+ - [ ] Run Fault injection with CSNN_DVSGesture
+    - [x] Create a singularity container that can be used for ANNFI and CSNN_DVSGesture models
+    - [x] Understand how to place our module to existing framework
+        - [x] Modify codes for data loader
+        - [x] Modify codes for model architecture (e.g. include interpolation on forward pass)
+    - [ ] Check beta and membrane threshold values
+        - [ ] Right now, there is one beta value for each layer. Modify it so that there is a beta value for each neuron.
+    - [ ] Inject fault on membrane potentials.
 
 
-Secondary
--[] Modify train scripts as they can be used with argument parser. The aim is to run the same script with different parameters at the same time in different containers or servers.
+### Secondary
+ - [ ] Modify train scripts as they can be used with argument parser. The aim is to run the same script with different parameters at the same time in different containers or servers.
