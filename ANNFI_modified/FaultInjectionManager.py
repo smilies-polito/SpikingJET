@@ -162,7 +162,7 @@ class FaultInjectionManager:
         :return: a tuple (scores, indices) where the scores are the vector score of each element in the batch and the
         indices are the argmax of the vector score
         """
-
+        
         # Execute the network on the batch
         network_output = self.network(data)
         prediction = torch.topk(network_output, k=1)

@@ -41,10 +41,10 @@ def main(args):
                                        network_name=args.network_name,
                                        device=device)
 
-    fault_list = fault_manager.get_weight_fault_list(load_fault_list=True,
+    fault_list = fault_manager.get_weight_fault_list(load_fault_list=False,
                                                      save_fault_list=True)
 
-    """
+    
     # Execute the fault injection campaign with the smart network
     fault_injection_executor = FaultInjectionManager(network=network,
                                                      network_name=args.network_name,
@@ -52,10 +52,10 @@ def main(args):
                                                      loader=loader)
 
     #This function runs clean inferences on the golden dataset
-    fault_injection_executor.run_clean()
+    #fault_injection_executor.run_clean()
     #This function runs fault injections
-    fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
-    """
+    #fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
+    
 
 if __name__ == '__main__':
     main(args=parse_args())
