@@ -26,6 +26,8 @@ After create it once you don't have recreate it everytime. Whenever you want to 
    python3 main.py -n CSNN -b 16
 ```
 
+**_NOTE:_** For SNN layers, learn_beta and learn_threshold values must be "True" in order to access it even though it isn't updated during the training.  
+
 3. DVSGesture_model\
 &nbsp;&nbsp;&nbsp;&nbsp; We will develop CSNN architectures here. We have already one model that is working well but additional experiments related to model can be done here.
 
@@ -42,9 +44,10 @@ After create it once you don't have recreate it everytime. Whenever you want to 
     - [x] Understand how to place our module to existing framework
         - [x] Modify codes for data loader
         - [x] Modify codes for model architecture (e.g. include interpolation on forward pass)
-    - [ ] Check beta and membrane threshold values
-        - [ ] Right now, there is one beta value for each layer. Modify it so that there is a beta value for each neuron.
-    - [ ] Inject fault on membrane potentials.
+    - [x] Check beta and membrane threshold values
+        - [x] Right now, there is one beta value for each layer. Modify it so that there is a beta value for each neuron.
+    - [x] Inject fault on membrane potentials.
+    - [x] Inject fault on beta values.
 
 
 ### Secondary
