@@ -52,9 +52,9 @@ def main(args):
                                                      loader=loader)
 
     #This function runs clean inferences on the golden dataset
-    #fault_injection_executor.run_clean()
+    fault_injection_executor.run_clean()
     #This function runs fault injections
-    #fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
+    fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
     
 
 if __name__ == '__main__':

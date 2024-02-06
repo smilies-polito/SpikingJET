@@ -12,6 +12,9 @@ from FaultGenerators.WeightFault import WeightFault
 from torch.nn import Module, Conv2d
 import torch
 
+import snntorch as snn
+
+
 
 from FaultGenerators.utils import float32_bit_flip
 
@@ -22,28 +25,25 @@ class FaultListGenerator:
                  network: Module,
                  network_name: str,
                  device: torch.device,
-                 module_classes: Type[Module] = Conv2d):
+                 module_classes: Type[Module] = (Conv2d, snn.Leaky)): # 
 
         self.network = network
         self.network_name = network_name
 
         self.device = device
 
+
         # Name of the injectable layers
-        # injectable_layer_names = [name.replace('.weight', '') for name, module in self.network.named_modules()
-        #                           if isinstance(module, module_classes)]
-        injectable_layer_names = [name.replace('.weight', '') for name, module in self.network.named_modules()]    
-        
+        injectable_layer_names = [name.split('.')[0] for name, module in self.network.named_modules()
+                                  if isinstance(module, module_classes)]
+
         # List of the shape of all the layers that contain weight
-        self.net_layer_shape = {name.replace('.weight', ''): param.shape for name, param in self.network.named_parameters()
-                                if name.replace('.weight', '') in injectable_layer_names}
-        for name, param in network.named_parameters():     
-            print(f"Parameter name: {name}, Shape: {param.shape}")
-        for name, _ in network.named_parameters():
-            print(f"Parameter name: {name}, Shape: {param.shape}")    
+        self.net_layer_shape = {name: param.shape for name, param in self.network.named_parameters()
+                                if name.split('.')[0] in injectable_layer_names}
+
         # List of the injectable params
-        self.net_layer_params = {name.replace('.weight', ''): param for name, param in self.network.named_parameters()
-                                 if name.replace('.weight', '') in injectable_layer_names}
+        self.net_layer_params = {name: param for name, param in self.network.named_parameters()
+                                 if name.split('.')[0] in injectable_layer_names}
 
     @staticmethod
     def __compute_date_n(N: int,
