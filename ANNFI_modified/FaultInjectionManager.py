@@ -43,7 +43,7 @@ class FaultInjectionManager:
         os.makedirs(self.clean_output_dir, exist_ok=True)
         os.makedirs(self.faulty_output_dir, exist_ok=True)
         
-    def run_clean(self):
+    def run_clean(self, fault_manager):
         """
         Run a clean inference of the network
         :return: A string containing the formatted time elapsed from the beginning to the end of the fault injection
