@@ -8,6 +8,7 @@ Load from Best_model.py
 import tonic
 import matplotlib.pyplot as plt
 import tonic.transforms as transforms
+import torchsummary as ts
 
 import torch
 import torchvision
@@ -25,7 +26,7 @@ from Best_model import CSNN
 import numpy as np
 
 
-model_path = "/home/ldapusers/gogebakan/snn_fault_injection/DVSGesture_model/2024_01_26-02_12_04_PM/weights/CSNN_DVSGesture.th"
+model_path = "/home/ldapusers/gogebakan/snn_fault_injection/DVSGesture_model/2024_02_06-01_19_28_PM/weights/CSNN_DVSGesture.th"
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 print("Device is: ", device)
@@ -48,36 +49,32 @@ test_loader = torch.utils.data.DataLoader(cached_testset, batch_size=32, shuffle
 net = CSNN().to(device)
 
 
-
+# module_classes = (nn.Conv2d, snn.Leaky)
+module_classes = (nn.Conv2d)
 net.load_state_dict(torch.load(model_path))
 
 print(net)
 
-injectable_layer_names = [name.replace('.weight', '') for name, module in net.named_modules()]
-print('injectable_layer_names', injectable_layer_names)
-
-print('net.named_parameters', net.named_parameters())
-for name, param in net.named_parameters():
-  print(name, param.shape)
-  print(param)
-  print()
+#It should be working  
+# Name of the injectable layers
+injectable_layer_names = [name.split('.')[0] for name, module in net.named_modules()
+                          if isinstance(module, module_classes)]
 
 # List of the shape of all the layers that contain weight
+net_layer_shape = {name: param.shape for name, param in net.named_parameters()
+                        if name.split('.')[0] in injectable_layer_names}
 
-# net_layer_shape_beta = {name.replace('.beta', ''): param.shape for name, param in net.named_parameters()
-#                         if (name.replace('.beta', '') in injectable_layer_names)}
+# List of the injectable params
+net_layer_params = {name: param for name, param in net.named_parameters()
+                          if name.split('.')[0] in injectable_layer_names}
 
-# print('net_layer_shape_beta', net_layer_shape_beta)
+print(injectable_layer_names)
+print(net_layer_shape)
+# print(net_layer_params)
 
-# net_layer_shape = {name.replace('.weight', ''): param.shape for name, param in net.named_parameters()
-#                         if (name.replace('.weight', '') in injectable_layer_names)}
-
-# print('net_layer_shape', net_layer_shape)
 
 exit()
-# List of the injectable params
-self.net_layer_params = {name.replace('.weight', ''): param for name, param in self.network.named_parameters()
-                          if name.replace('.weight', '') in injectable_layer_names}
+
 
 
 

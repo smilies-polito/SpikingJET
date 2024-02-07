@@ -30,19 +30,19 @@ class CSNN(nn.Module):
 
         # Initialize layers
         self.conv1 = nn.Conv2d(2, 12, 5)
-        self.lif1 = snn.Leaky(beta=self.beta1, threshold=self.threshold1, spike_grad=self.gradient)
+        self.lif1 = snn.Leaky(beta=self.beta1, threshold=self.threshold1, spike_grad=self.gradient, learn_beta=True, learn_threshold=True)
         self.conv2 = nn.Conv2d(12, 32, 5)
-        self.lif2 = snn.Leaky(beta=self.beta2, threshold=self.threshold2, spike_grad=self.gradient)
+        self.lif2 = snn.Leaky(beta=self.beta2, threshold=self.threshold2, spike_grad=self.gradient, learn_beta=True, learn_threshold=True)
         self.fc1 = nn.Linear(800, 11)
-        self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, output=True)
+        self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
         self.mem = [[],[],[]]
     def forward(self, x):
 
         # Initialize hidden states and outputs at t=0
-        self.mem[0] = self.lif1.init_leaky()
-        self.mem[1] = self.lif2.init_leaky()
-        self.mem[2] = self.lif3.init_leaky()
+        self.mem.append(self.lif1.init_leaky()) 
+        self.mem.append(self.lif2.init_leaky())
+        self.mem.append(self.lif3.init_leaky())
         
 
         mem_rec = []

@@ -12,6 +12,9 @@ from FaultGenerators.WeightFault import WeightFault
 from torch.nn import Module, Conv2d
 import torch
 
+import snntorch as snn
+
+
 
 from FaultGenerators.utils import float32_bit_flip
 
@@ -22,13 +25,14 @@ class FaultListGenerator:
                  network: Module,
                  network_name: str,
                  device: torch.device,
-                 module_classes: Type[Module] = Conv2d):
+                 module_classes: Type[Module] = (Conv2d, snn.Leaky)): # 
 
         self.network = network
         self.network_name = network_name
 
         self.device = device
         self.pippo = []
+
 
         # Name of the injectable layers
         # injectable_layer_names = [name.replace('.weight', '') for name, module in self.network.named_modules()

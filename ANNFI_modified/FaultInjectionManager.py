@@ -184,13 +184,13 @@ class FaultInjectionManager:
         """
 
         if fault_mode == 'stuck-at':
-            self.weight_fault_injector.inject_stuck_at(layer_name=f'{fault.layer_name}.weight',
+            self.weight_fault_injector.inject_stuck_at(layer_name=f'{fault.layer_name}',
                                                        tensor_index=fault.tensor_index,
                                                        bit=fault.bit,
                                                        value=fault.value)
 
         elif fault_mode == 'bit-flip':
-            self.weight_fault_injector.inject_bit_flip(layer_name=f'{fault.layer_name}.weight',
+            self.weight_fault_injector.inject_bit_flip(layer_name=f'{fault.layer_name}',
                                                        tensor_index=fault.tensor_index,
                                                        bit=fault.bit,)
         else:

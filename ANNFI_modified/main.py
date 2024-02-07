@@ -58,7 +58,7 @@ def main(args):
                                                      save_fault_list=False)
 
     #This function runs fault injections
-    #fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
+    fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
     
 
 if __name__ == '__main__':

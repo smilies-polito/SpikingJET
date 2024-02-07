@@ -106,16 +106,24 @@ class Net(nn.Module):
         super().__init__()
 
         #Initialize parameters
-        self.beta = torch.tensor([0.5])
+        # self.beta = torch.tensor([0.5])
+        self.beta1 = torch.ones(14)*0.5 #14
+        self.beta2 = torch.ones(5)*0.5
+        self.beta3 = torch.ones(11)*0.5
+
+        self.threshold1 = torch.ones(14)
+        self.threshold2 = torch.ones(5)
+        self.threshold3 = torch.ones(11)
+
         self.gradient = surrogate.fast_sigmoid(slope=25)
 
         # Initialize layers
         self.conv1 = nn.Conv2d(2, 12, 5)
-        self.lif1 = snn.Leaky(beta=self.beta, spike_grad=self.gradient, learn_beta=True)
+        self.lif1 = snn.Leaky(beta=self.beta1, threshold=self.threshold1, spike_grad=self.gradient, learn_beta=True, learn_threshold=True)
         self.conv2 = nn.Conv2d(12, 32, 5)
-        self.lif2 = snn.Leaky(beta=self.beta, spike_grad=self.gradient, learn_beta=True)
+        self.lif2 = snn.Leaky(beta=self.beta2, threshold=self.threshold2, spike_grad=self.gradient, learn_beta=True, learn_threshold=True)
         self.fc1 = nn.Linear(800, 11)
-        self.lif3 = snn.Leaky(beta=self.beta, spike_grad=self.gradient, learn_beta=True, output=True)
+        self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
     def forward_pass(self, x):
 
@@ -156,7 +164,7 @@ loss_fn = SF.mse_count_loss(correct_rate=0.8, incorrect_rate=0.2)
 
 ### Training
 # 50 epochs; counter just used for test set validation
-num_epochs = 50
+num_epochs = 30
 counter = 0
 
 loss_hist = []
