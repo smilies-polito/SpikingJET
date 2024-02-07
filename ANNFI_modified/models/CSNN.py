@@ -12,6 +12,8 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch
 
+from FaultGenerators.utils import float32_bit_flip
+
 # Define Network
 class CSNN(nn.Module):
     def __init__(self):
@@ -36,14 +38,36 @@ class CSNN(nn.Module):
         self.fc1 = nn.Linear(800, 11)
         self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
-        self.mem = [[],[],[]]
-    def forward(self, x):
+        self.mem = {}
+        self.inject = False
+        self.faults = {}
 
-        # Initialize hidden states and outputs at t=0
-        self.mem.append(self.lif1.init_leaky()) 
-        self.mem.append(self.lif2.init_leaky())
-        self.mem.append(self.lif3.init_leaky())
+    def injection(self, layer, tensor_index, bit_index):
         
+        golden_value = float(self.mem[layer][tensor_index])
+        faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
+        self.mem[layer][tensor_index] = faulty_value
+
+    def forward(self, x):
+        '''
+        if self.inject:
+          for layer, faultss in self.faults.items():
+            print(layer)
+            for fault in faultss:
+              print(fault[0])
+              print(fault[1])
+        '''      
+        # Initialize hidden states and outputs at t=0
+        self.mem['lif1'] = self.lif1.init_leaky()
+        self.mem['lif2'] = self.lif2.init_leaky()
+        self.mem['lif3'] = self.lif3.init_leaky()
+        
+        '''
+        if self.inject:
+          for layer, fault_list in self.faults.items():
+            for fault in fault_list:
+              self.injection(layer, fault[0], fault[1])
+        '''      
 
         mem_rec = []
         spk_rec = []
@@ -52,16 +76,25 @@ class CSNN(nn.Module):
         for step in range(x.shape[0]):
 
           cur1 = F.max_pool2d(self.conv1(x[step]), 2)
-          spk1, self.mem[0] = self.lif1(cur1, self.mem[0])
-          #print(self.mem[0].shape)
-
+          spk1, self.mem['lif1'] = self.lif1(cur1, self.mem['lif1'])
+          if self.inject:
+            for fault in self.faults['lif1']:
+              self.injection('lif1', fault[0], fault[1])
+          #print(self.mem['lif1'].shape)
+          
           cur2 = F.max_pool2d(self.conv2(spk1), 2)
-          spk2, self.mem[1] = self.lif2(cur2, self.mem[1])
-          #print(self.mem[1].shape)
+          spk2, self.mem['lif2'] = self.lif2(cur2, self.mem['lif2'])
+          if self.inject:
+            for fault in self.faults['lif2']:
+              self.injection('lif2', fault[0], fault[1])
+          #print(self.mem['lif2'].shape)
 
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
-          spk3, self.mem[2] = self.lif3(cur3, self.mem[2])
-          #print(self.mem[2].shape)
+          spk3, self.mem['lif3'] = self.lif3(cur3, self.mem['lif3'])
+          if self.inject:
+            for fault in self.faults['lif3']:
+              self.injection('lif3', fault[0], fault[1])
+          #print(self.mem['lif3'].shape)
           
           spk_rec.append(spk3)
           # mem_rec.append(mem[2])

@@ -55,10 +55,10 @@ def main(args):
     
     # Generate fault list
     fault_list = fault_manager.get_fault_list(load_fault_list=False,
-                                                     save_fault_list=False)
+                                                     save_fault_list=True)
 
     #This function runs fault injections
-    fault_injection_executor.run_faulty_campaign_on_weight(fault_list=fault_list)
+    fault_injection_executor.run_faulty_campaign(fault_list=fault_list)
     
 
 if __name__ == '__main__':

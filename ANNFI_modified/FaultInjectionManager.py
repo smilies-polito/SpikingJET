@@ -49,7 +49,7 @@ class FaultInjectionManager:
         :return: A string containing the formatted time elapsed from the beginning to the end of the fault injection
         campaign
         """
-
+        self.network.inject = False
         with torch.no_grad():
 
             # Start measuring the time elapsed
@@ -85,9 +85,9 @@ class FaultInjectionManager:
         return str(timedelta(seconds=elapsed))
         
 
-    def run_faulty_campaign_on_weight(self,
-                                      fault_list: list,
-                                      different_scores: bool = False) -> str:
+    def run_faulty_campaign(self,
+                            fault_list: list,
+                            different_scores: bool = False) -> str:
         """
         Run a faulty injection campaign for the network
         :param fault_list: list of fault to inject
@@ -100,6 +100,7 @@ class FaultInjectionManager:
         total_different_predictions = 0
         total_predictions = 0
 
+        self.network.inject = True
         with torch.no_grad():
 
             # Start measuring the time elapsed
@@ -119,8 +120,9 @@ class FaultInjectionManager:
                 # Inject all the faults in a single batch
                 for fault_id, fault in enumerate(fault_list):
                     
-                    # Inject faults in the weight
-                    self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
+                    if fault.layer_name.split('.')[1] != 'potential':
+                        # Inject faults in the weight
+                        self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
 
                     # Run inference on the current batch
                     faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
@@ -142,8 +144,9 @@ class FaultInjectionManager:
                     different_predictions_percentage = 100 * total_different_predictions / total_predictions
                     pbar.set_postfix({'Different': f'{different_predictions_percentage:.4f}%'})
 
-                    # Restore the golden value
-                    self.weight_fault_injector.restore_golden()
+                    if fault.layer_name.split('.')[1] != 'potential':
+                        # Restore the golden value
+                        self.weight_fault_injector.restore_golden()
 
                     # Update the progress bar
                     pbar.update(1)
