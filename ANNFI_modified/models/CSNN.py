@@ -77,6 +77,7 @@ class CSNN(nn.Module):
 
           cur1 = F.max_pool2d(self.conv1(x[step]), 2)
           spk1, self.mem['lif1'] = self.lif1(cur1, self.mem['lif1'])
+
           if self.inject:
             for fault in self.faults['lif1']:
               self.injection('lif1', fault[0], fault[1])
@@ -84,6 +85,7 @@ class CSNN(nn.Module):
           
           cur2 = F.max_pool2d(self.conv2(spk1), 2)
           spk2, self.mem['lif2'] = self.lif2(cur2, self.mem['lif2'])
+
           if self.inject:
             for fault in self.faults['lif2']:
               self.injection('lif2', fault[0], fault[1])
@@ -91,6 +93,7 @@ class CSNN(nn.Module):
 
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
           spk3, self.mem['lif3'] = self.lif3(cur3, self.mem['lif3'])
+          
           if self.inject:
             for fault in self.faults['lif3']:
               self.injection('lif3', fault[0], fault[1])
