@@ -11,6 +11,7 @@ from snntorch import utils
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
+import struct
 
 from FaultGenerators.utils import float32_bit_flip
 
@@ -40,35 +41,99 @@ class CSNN(nn.Module):
 
         self.mem = {}
         self.inject = False
+        self.xor = False
         self.faults = {}
+        self.mask = {}
+        self.size = {
+          "lif1": torch.Size([64,12,14,14]),
+          "lif2": torch.Size([64,32,5,5]),
+          "lif3": torch.Size([64,11])
 
-    def injection(self, layer, tensor_index, bit_index):
+        }
+
+
+    def flatten_layer_dim(self, layer):
+      '''
+      For a given layer (Multi dimensional array) compute
+      the dimension of the flatten array (Mono dimensional array) 
+      '''
+      n = 1
+      for dim in self.size[layer]:
+        n = n*dim  
+      return n  
+
+    def compute_flatten_index(self, layer, index_arr):
+      '''
+      Given an index of the layer (Multi dimensional array) return
+      the corresponding index of the flatten array
+      '''
+      index = 0
+      for n in range(len(index_arr)):
+        i = n+1
+        tmp =  index_arr[-i]
+        for y in range(n):
+          i2 = y+1
+          tmp = tmp *self.size[layer][-i2]
+        index = index + tmp 
+      return index   
+
+    def compute_mask(self):
+      '''
+      Compute the mask to perform the xor injection
+      '''
+      
+      for layer, faults in self.faults.items():
+        if layer not in self.mask.keys():
+          self.mask[layer] = [0]*self.flatten_layer_dim(layer)
+        for tensor_index, bit_index in faults:
+          i = self.compute_flatten_index(layer, tensor_index)
+          self.mask[layer][i] += 2**bit_index
+
+        for i in range(self.flatten_layer_dim(layer)):
+          self.mask[layer][i] = struct.pack('!I', self.mask[layer][i])
+ 
+
+
+    def injection_dict(self, layer, tensor_index, bit_index):
+        '''
+        inject faults using the dictionary
+        '''
         
         golden_value = float(self.mem[layer][tensor_index])
         faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
         self.mem[layer][tensor_index] = faulty_value
 
+    def injection_xor(self, layer):    
+      '''
+        inject faults using the XOR mask
+      '''
+      for dim in range(self.size[layer]):
+        for y in range(3):
+            float_list = []
+            a = struct.pack('!f', self.mem[layer][i,y,z,k])
+            
+            for ba, bb in zip(a, self.mask[layer][self.compute_flatten_index(layer, [i,y,z,k])]):
+                float_list.append(ba ^ bb)
+
+            self.mem[layer][i,y,z,k] = struct.unpack('!f', bytes(float_list))[0]
+
+
+    def injection(self, layer):
+      if self.inject:
+        if self.xor:
+          self.injection_xor(layer)
+        else:  
+          for fault in self.faults[layer]:
+            self.injection_dict(layer, fault[0], fault[1])
+
     def forward(self, x):
-        '''
-        if self.inject:
-          for layer, faultss in self.faults.items():
-            print(layer)
-            for fault in faultss:
-              print(fault[0])
-              print(fault[1])
-        '''      
+             
         # Initialize hidden states and outputs at t=0
         self.mem['lif1'] = self.lif1.init_leaky()
         self.mem['lif2'] = self.lif2.init_leaky()
         self.mem['lif3'] = self.lif3.init_leaky()
         
-        '''
-        if self.inject:
-          for layer, fault_list in self.faults.items():
-            for fault in fault_list:
-              self.injection(layer, fault[0], fault[1])
-        '''      
-
+        
         mem_rec = []
         spk_rec = []
         #print('x.shape ', x.shape[0])
@@ -77,26 +142,20 @@ class CSNN(nn.Module):
 
           cur1 = F.max_pool2d(self.conv1(x[step]), 2)
           spk1, self.mem['lif1'] = self.lif1(cur1, self.mem['lif1'])
-
-          if self.inject:
-            for fault in self.faults['lif1']:
-              self.injection('lif1', fault[0], fault[1])
+          self.injection('lif1')
+          
           #print(self.mem['lif1'].shape)
           
           cur2 = F.max_pool2d(self.conv2(spk1), 2)
           spk2, self.mem['lif2'] = self.lif2(cur2, self.mem['lif2'])
 
-          if self.inject:
-            for fault in self.faults['lif2']:
-              self.injection('lif2', fault[0], fault[1])
+          self.injection('lif2')
           #print(self.mem['lif2'].shape)
 
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
           spk3, self.mem['lif3'] = self.lif3(cur3, self.mem['lif3'])
           
-          if self.inject:
-            for fault in self.faults['lif3']:
-              self.injection('lif3', fault[0], fault[1])
+          self.injection('lif3')
           #print(self.mem['lif3'].shape)
           
           spk_rec.append(spk3)

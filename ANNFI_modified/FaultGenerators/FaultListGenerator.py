@@ -162,14 +162,14 @@ class FaultListGenerator:
                         else: 
                             if layer not in self.network.faults.keys(): 
                                 self.network.faults[layer] = []
-                                print("prova")
                             self.network.faults[layer].append([fault.tensor_index, fault.bit])
                         # Write fault list to csv
                         writer_fault.writerow([index, fault.layer_name, fault.tensor_index, fault.bit])    
 
                     # Write fault information to numpy
                     np.savez(f'{fault_list_filename}/{seed}_weights', golden=golden_value_list, faulty=faulty_value_list)
-
+            
+            self.network.compute_mask()
             print('Fault List Generated')
 
         return fault_list

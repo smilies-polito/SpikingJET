@@ -1,73 +1,67 @@
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
+import struct
 
-def create_zero_tensor(dimensions):
-        return torch.zeros(dimensions, dtype=torch.float32)
+def float_to_bin(num):
+    # Pack the float into bytes
+    packed = struct.pack('!f', num)
+    # Convert bytes to binary string
+    binary = ''.join(format(byte, '08b') for byte in packed)
+    return binary
 
-def set_bits_to_one(original_tensor, indices):
-   
-    modified_tensor = original_tensor.clone()  # Clone the original tensor
+def int_to_bin(num):
+    # Pack the float into bytes
+    packed = struct.pack('!I', num)
+    # Convert bytes to binary string
+    binary = ''.join(format(byte, '08b') for byte in packed)
+    return binary
+
+
+def set_bits_to_one(indices, dim):
+
+    faults_mask = [0]*dim
+    
 
     for tensor_index, bit_index in indices:
-        # Convert the float32 number to its binary representation
-        binary_representation = '{:032b}'.format(
-            torch.tensor(original_tensor[tensor_index]).view(-1).type(torch.int32).item()
-        )
+        i = tensor_index[1]+3*tensor_index[0]
+        faults_mask[i] += 2**bit_index
+    
+    for i in range(dim):
+        faults_mask[i] = struct.pack('!I', faults_mask[i])
 
-        # Modify the bit at the specified index
-        modified_representation = binary_representation[:-(bit_index + 1)] + '1' + binary_representation[-bit_index:]
+    return faults_mask
 
-        # Convert the modified binary representation back to float32
-        modified_tensor[tensor_index] = torch.tensor(int(modified_representation, 2), dtype=torch.float32)
+def flip_bits(potential_tensor, mask):
+    for i in range(3):
+        for y in range(3):
+            float_list = []
+            a = struct.pack('!f', potential_tensor[i,y])
+            mask[i*3+y]
+            for ba, bb in zip(a, mask[i*3+y]):
+                float_list.append(ba ^ bb)
 
-    return modified_tensor  
+            potential_tensor[i,y] = struct.unpack('!f', bytes(float_list))[0]
+    return potential_tensor    
 
-def flip_bits(modified_tensor, potential_tensor):
-    """
-    Flips the bits in the potential tensor corresponding to the set bits in the modified tensor.
-    
-    Parameters:
-        modified_tensor (torch.Tensor): The modified tensor with bits set to 1.
-        potential_tensor (torch.Tensor): The tensor to be modified based on the modified tensor.
-    
-    Returns:
-        torch.Tensor: The modified potential tensor with flipped bits.
-    """
-    potential_int = potential_tensor.type(torch.int32)
-    
-    # Create a tensor with all bits set to 1
-    ones_tensor = torch.ones_like(modified_tensor, dtype=torch.int32)
-    
-    # Perform a bitwise XOR operation between the ones tensor and the modified tensor
-    # This will flip the bits in the potential tensor where the modified tensor has 1s
-    flipped_bits_int = potential_int ^ (ones_tensor << modified_tensor.type(torch.int32))
-    
-    # Convert the modified potential tensor back to float32
-    flipped_bits_tensor = flipped_bits_int.type(torch.float32)
-    
-    return flipped_bits_tensor
 
 def print_bin(tensor):
     # Iterate through each element in the tensor
     for num in tensor.flatten():
-        # Convert the element to its binary representation
-        binary_repr = bin(torch.tensor(num).view(-1).long().item())
-        # Print the binary representation, slicing off the first two characters (which are '0b')
-        print(binary_repr[2:].zfill(tensor.element_size() * 8))
+        bin_rep = float_to_bin(num)
+        print(bin_rep)
 
 
 # Example usage:
-indices = [((1,1), 20), ((1,0), 1), ((1,2), 8)]
+indices = [((1,1), 20), ((1,0), 1), ((1,2), 8), ((1,2), 12)]
 tensor_dimension = torch.Size([3,3])  # Example dimension
-zero_tensor = create_zero_tensor(tensor_dimension)
-print(zero_tensor)
-print_bin(zero_tensor)
 
-modified_tensor = set_bits_to_one(zero_tensor, indices)
-print("Modified Tensor:")
-print(modified_tensor)
-print_bin(modified_tensor)
+
+faults_mask = set_bits_to_one(indices, 9)
+print("Faults mask:")
+for i in range(9):
+        print(faults_mask[i])
+
 potential_tensor = torch.tensor( [
     
                 [10.0, 20.0, 30.0],
@@ -79,11 +73,12 @@ potential_tensor = torch.tensor( [
 )
 print("input tens:")
 print_bin(potential_tensor)
+
 # Flip the bits in the potential tensor based on the modified tensor
-#flipped_potential_tensor = flip_bits(modified_tensor, potential_tensor)
-result = torch.bitwise_xor(potential_tensor, modified_tensor)
+flipped_tensor = flip_bits(potential_tensor, faults_mask)
+#result = torch.bitwise_xor(potential_tensor, mask_tensor)  #unfortunatly doesn't work with float tensor
 
 print("input flip tens:")
-print_bin(result)
+print_bin(flipped_tensor)
 print("Flipped Potential Tensor:")
-print(result)
+print(flipped_tensor)
