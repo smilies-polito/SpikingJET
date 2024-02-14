@@ -16,7 +16,7 @@ def parse_args():
                         required=True,
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121'])
+                                 'DenseNet121', 'CSNN'])
     parser.add_argument('--batch-size', '-b', type=int, default=64,
                         help='Test set batch size')
 
@@ -70,6 +70,7 @@ def pt_to_csv(network_name: str,
                 tensor = torch.load(f'{input_folder_path}/{file}',
                                     map_location=torch.device('cpu'))   # This avoids loading data to GPU
                 if not label:
+                    print(tensor)
                     number_of_classes = int(tensor.shape[1])
 
                     # Append the batch_id information to every tensor
@@ -119,7 +120,7 @@ def main():
               batch_size=args.batch_size,
               faulty=False,
               label=True)
-
+    
     # Convert clean
     print("Converting pt to csv for CLEAN PREDICTIONS")
     pt_to_csv(network_name=args.network_name,

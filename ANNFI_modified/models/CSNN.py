@@ -11,7 +11,6 @@ from snntorch import utils
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
-import struct
 
 from FaultGenerators.utils import float32_bit_flip
 
@@ -39,17 +38,18 @@ class CSNN(nn.Module):
         self.fc1 = nn.Linear(800, 11)
         self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
-        self.mem = {}
-        self.inject = False
-        self.xor = False
-        self.faults = {}
-        self.mask = {}
         self.size = {
           "lif1": torch.Size([64,12,14,14]),
           "lif2": torch.Size([64,32,5,5]),
           "lif3": torch.Size([64,11])
-
         }
+
+        self.mem = {}
+        self.inject = False
+        self.xor = True
+        self.faults = {}
+        self.mask = {}
+        
 
 
     def flatten_layer_dim(self, layer):
@@ -81,18 +81,13 @@ class CSNN(nn.Module):
       '''
       Compute the mask to perform the xor injection
       '''
-      
       for layer, faults in self.faults.items():
         if layer not in self.mask.keys():
-          self.mask[layer] = [0]*self.flatten_layer_dim(layer)
+          self.mask[layer] = torch.zeros(self.size[layer], dtype=torch.int32)
         for tensor_index, bit_index in faults:
-          i = self.compute_flatten_index(layer, tensor_index)
-          self.mask[layer][i] += 2**bit_index
-
-        for i in range(self.flatten_layer_dim(layer)):
-          self.mask[layer][i] = struct.pack('!I', self.mask[layer][i])
- 
-
+          
+          self.mask[layer][tensor_index] += 2**bit_index
+          
 
     def injection_dict(self, layer, tensor_index, bit_index):
         '''
@@ -107,15 +102,9 @@ class CSNN(nn.Module):
       '''
         inject faults using the XOR mask
       '''
-      for dim in range(self.size[layer]):
-        for y in range(3):
-            float_list = []
-            a = struct.pack('!f', self.mem[layer][i,y,z,k])
-            
-            for ba, bb in zip(a, self.mask[layer][self.compute_flatten_index(layer, [i,y,z,k])]):
-                float_list.append(ba ^ bb)
-
-            self.mem[layer][i,y,z,k] = struct.unpack('!f', bytes(float_list))[0]
+      pot_int = self.mem[layer].view(torch.int)
+      pot_int_incjeted = torch.bitwise_xor(pot_int, self.mask[layer])
+      self.mem[layer] = pot_int_incjeted.view(torch.float)
 
 
     def injection(self, layer):

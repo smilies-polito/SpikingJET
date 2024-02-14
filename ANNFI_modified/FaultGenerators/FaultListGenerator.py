@@ -43,9 +43,8 @@ class FaultListGenerator:
                                 if name.split('.')[0] in injectable_layer_names}
 
         #print(self.net_layer_shape)
-        self.net_layer_shape["lif1.potential"] = torch.Size([64,12,14,14])
-        self.net_layer_shape["lif2.potential"] = torch.Size([64,32,5,5])
-        self.net_layer_shape["lif3.potential"] = torch.Size([64,11])
+        for layer, size in self.network.size.items():
+            self.net_layer_shape[layer+".potential"] = size
         #print(self.net_layer_shape)    
 
         # List of the injectable params

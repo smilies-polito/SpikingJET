@@ -27,8 +27,11 @@ def set_bits_to_one(indices, dim):
         i = tensor_index[1]+3*tensor_index[0]
         faults_mask[i] += 2**bit_index
     
-    for i in range(dim):
-        faults_mask[i] = struct.pack('!I', faults_mask[i])
+    #for i in range(dim):
+    #    faults_mask[i] = struct.pack('!I', faults_mask[i])
+    mask = torch.Tensor(faults_mask)
+    mask = mask.view(torch.int)
+    print(mask)
 
     return faults_mask
 
@@ -51,10 +54,37 @@ def print_bin(tensor):
         bin_rep = float_to_bin(num)
         print(bin_rep)
 
+potential_tensor = torch.tensor( [
+    
+                [10.0, 20.0, 30.0],
+                [40.0, 50.0, 60.0],
+                [70.0, 80.0, 90.0]
+            ]    
+           ,
+    dtype=torch.float32
+)
+print(potential_tensor)
+pot_int = potential_tensor.view(torch.int)
+print(pot_int)
+mask= torch.tensor( [
+    
+                [0, 0, 2],
+                [0, 537001984, 0],
+                [16, 0, 0]
+            ]    
+           ,
+    dtype=torch.int32
+)
+print(mask)
+res = torch.bitwise_xor(pot_int, mask)
+pot_float = res.view(torch.float)
+print(pot_float)
 
+'''
 # Example usage:
 indices = [((1,1), 20), ((1,0), 1), ((1,2), 8), ((1,2), 12)]
 tensor_dimension = torch.Size([3,3])  # Example dimension
+
 
 
 faults_mask = set_bits_to_one(indices, 9)
@@ -82,3 +112,4 @@ print("input flip tens:")
 print_bin(flipped_tensor)
 print("Flipped Potential Tensor:")
 print(flipped_tensor)
+'''
