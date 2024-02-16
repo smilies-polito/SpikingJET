@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import math
+import random
 from datetime import timedelta
 
 import torch
@@ -122,7 +123,7 @@ class FaultInjectionManager:
                         # Inject faults in the weight
                         self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
                     else:
-                        self.network.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit]
+                        self.network.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit, random.randint(0,24)]
                     
                     if fault.layer_name.split('.')[1] != 'potential' or self.network.one == True:
                         # Run inference on the current batch
