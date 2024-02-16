@@ -36,16 +36,11 @@ class FaultListGenerator:
         # Name of the injectable layers
         injectable_layer_names = [name.split('.')[0] for name, module in self.network.named_modules()
                                   if isinstance(module, module_classes)]
-        print(injectable_layer_names)
 
         # List of the shape of all the layers that contain weight
         self.net_layer_shape = {name: param.shape for name, param in self.network.named_parameters()
                                 if name.split('.')[0] in injectable_layer_names}
 
-        #print(self.net_layer_shape)
-        for layer, size in self.network.size.items():
-            self.net_layer_shape[layer+".potential"] = size
-        #print(self.net_layer_shape)    
 
         # List of the injectable params
         self.net_layer_params = {name: param for name, param in self.network.named_parameters()
@@ -84,6 +79,10 @@ class FaultListGenerator:
         :param t: Default 2.58. The desired confidence level
         :return: The fault list
         """
+
+        for layer, size in self.network.size.items():
+
+            self.net_layer_shape[layer+".potential"] = size
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
@@ -159,6 +158,8 @@ class FaultListGenerator:
                             faulty_value_list.append(faulty_value)
                         
                         else: 
+                            golden_value_list.append(0)
+                            faulty_value_list.append(0)
                             if layer not in self.network.faults.keys(): 
                                 self.network.faults[layer] = []
                             self.network.faults[layer].append([fault.tensor_index, fault.bit])

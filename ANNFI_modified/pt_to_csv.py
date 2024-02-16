@@ -60,9 +60,9 @@ def pt_to_csv(network_name: str,
         pbar = tqdm(os.listdir(input_folder_path),
                     colour='green',
                     desc=f'Reading {faulty_clean_str} .pt')
-
+       
         for file in pbar:
-
+            print(file)    
             # Append the file only if it is a .pt file
             if file.endswith('.pt'):
 
@@ -72,7 +72,7 @@ def pt_to_csv(network_name: str,
                 if not label:
                     print(tensor)
                     number_of_classes = int(tensor.shape[1])
-
+                        
                     # Append the batch_id information to every tensor
                     batch_id = int(re.findall(r'batch_([0-9]+)', file)[0])
                     batch_ids = torch.ones(tensor.shape[0]).mul(batch_id)

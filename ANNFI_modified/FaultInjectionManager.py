@@ -70,7 +70,6 @@ class FaultInjectionManager:
                 # Run inference on the current batch
                 scores, indices = self.__run_inference_on_batch(data=data)
 
-
                 # Save the output
                 torch.save(scores, f'{self.clean_output_dir}/batch_{batch_id}.pt')
                 torch.save(label, f'{self.label_output_dir}/batch_{batch_id}.pt')
@@ -111,7 +110,6 @@ class FaultInjectionManager:
                         colour='green',
                         desc=f'Fault Injection campaign',
                         ncols=shutil.get_terminal_size().columns * 2)
-
             # Cycle all the batches in the data loader
             for batch_id, batch in enumerate(self.loader):
                 data, _ = batch
@@ -123,26 +121,29 @@ class FaultInjectionManager:
                     if fault.layer_name.split('.')[1] != 'potential':
                         # Inject faults in the weight
                         self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
-
-                    # Run inference on the current batch
-                    faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
-
-                    # Save the output
-                    torch.save(faulty_scores, f'{self.faulty_output_dir}/fault_{fault_id}_batch_{batch_id}.pt')
-                    
-                    # Measure the different predictions
-                    if different_scores:
-                        different_predictions = int(torch.ne(faulty_scores,
-                                                             self.clean_output_scores[batch_id]).sum())
                     else:
-                        different_predictions = int(torch.ne(torch.Tensor(faulty_indices),
-                                                             torch.Tensor(self.clean_output_indices[batch_id])).sum())
+                        self.network.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit]
+                    
+                    if fault.layer_name.split('.')[1] != 'potential' or self.network.one == True:
+                        # Run inference on the current batch
+                        faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
 
-                    # Measure the loss in accuracy
-                    total_different_predictions += different_predictions
-                    total_predictions += len(batch[0])
-                    different_predictions_percentage = 100 * total_different_predictions / total_predictions
-                    pbar.set_postfix({'Different': f'{different_predictions_percentage:.4f}%'})
+                        # Save the output
+                        torch.save(faulty_scores, f'{self.faulty_output_dir}/fault_{fault_id}_batch_{batch_id}.pt')
+                        
+                        # Measure the different predictions
+                        if different_scores:
+                            different_predictions = int(torch.ne(faulty_scores,
+                                                                self.clean_output_scores[batch_id]).sum())
+                        else:
+                            different_predictions = int(torch.ne(torch.Tensor(faulty_indices),
+                                                                torch.Tensor(self.clean_output_indices[batch_id])).sum())
+
+                        # Measure the loss in accuracy
+                        total_different_predictions += different_predictions
+                        total_predictions += len(batch[0])
+                        different_predictions_percentage = 100 * total_different_predictions / total_predictions
+                        pbar.set_postfix({'Different': f'{different_predictions_percentage:.4f}%'})
 
                     if fault.layer_name.split('.')[1] != 'potential':
                         # Restore the golden value
@@ -150,7 +151,6 @@ class FaultInjectionManager:
 
                     # Update the progress bar
                     pbar.update(1)
-
         # Stop measuring the time
         elapsed = math.ceil(time.time() - start_time)
 

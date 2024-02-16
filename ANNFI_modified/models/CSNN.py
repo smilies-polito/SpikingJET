@@ -38,18 +38,14 @@ class CSNN(nn.Module):
         self.fc1 = nn.Linear(800, 11)
         self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
-        self.size = {
-          "lif1": torch.Size([64,12,14,14]),
-          "lif2": torch.Size([64,32,5,5]),
-          "lif3": torch.Size([64,11])
-        }
-
-        self.mem = {}
         self.inject = False
         self.xor = True
+        self.one = True
+        self.current = None
+        self.size = {}
+        self.mem = {}
         self.faults = {}
         self.mask = {}
-        
 
 
     def flatten_layer_dim(self, layer):
@@ -109,48 +105,47 @@ class CSNN(nn.Module):
 
     def injection(self, layer):
       if self.inject:
-        if self.xor:
+        if self.one and self.current[0] == layer:
+            self.injection_dict(layer, self.current[1], self.current[2])
+        elif self.xor:
           self.injection_xor(layer)
         else:  
           for fault in self.faults[layer]:
             self.injection_dict(layer, fault[0], fault[1])
+      else:
+        self.size[layer] = self.mem[layer].shape
 
-    def forward(self, x):
-             
+    def forward(self, x):     
+
         # Initialize hidden states and outputs at t=0
         self.mem['lif1'] = self.lif1.init_leaky()
         self.mem['lif2'] = self.lif2.init_leaky()
         self.mem['lif3'] = self.lif3.init_leaky()
         
-        
+        nu_step = []
         mem_rec = []
         spk_rec = []
-        #print('x.shape ', x.shape[0])
+
         x = nn.functional.interpolate(x, size=(2, 32, 32))
+        num_step = 0
         for step in range(x.shape[0]):
 
           cur1 = F.max_pool2d(self.conv1(x[step]), 2)
           spk1, self.mem['lif1'] = self.lif1(cur1, self.mem['lif1'])
           self.injection('lif1')
           
-          #print(self.mem['lif1'].shape)
-          
           cur2 = F.max_pool2d(self.conv2(spk1), 2)
           spk2, self.mem['lif2'] = self.lif2(cur2, self.mem['lif2'])
-
           self.injection('lif2')
-          #print(self.mem['lif2'].shape)
 
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
           spk3, self.mem['lif3'] = self.lif3(cur3, self.mem['lif3'])
-          
           self.injection('lif3')
-          #print(self.mem['lif3'].shape)
           
           spk_rec.append(spk3)
-          # mem_rec.append(mem[2])
+          num_step+=1
 
-
+        print(num_step)
         spk_rec =torch.stack(spk_rec)  
         _, results = spk_rec.sum(dim=0).max(1)
 
