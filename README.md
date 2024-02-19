@@ -39,7 +39,7 @@ After create it once you don't have recreate it everytime. Whenever you want to 
 
 
 ### Prior
- - [ ] Run Fault injection with CSNN_DVSGesture
+ - [x] Run Fault injection with CSNN_DVSGesture
     - [x] Create a singularity container that can be used for ANNFI and CSNN_DVSGesture models
     - [x] Understand how to place our module to existing framework
         - [x] Modify codes for data loader

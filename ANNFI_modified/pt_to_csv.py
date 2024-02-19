@@ -61,8 +61,7 @@ def pt_to_csv(network_name: str,
                     colour='green',
                     desc=f'Reading {faulty_clean_str} .pt')
        
-        for file in pbar:
-            print(file)    
+        for file in pbar: 
             # Append the file only if it is a .pt file
             if file.endswith('.pt'):
 
@@ -70,7 +69,6 @@ def pt_to_csv(network_name: str,
                 tensor = torch.load(f'{input_folder_path}/{file}',
                                     map_location=torch.device('cpu'))   # This avoids loading data to GPU
                 if not label:
-                    print(tensor)
                     number_of_classes = int(tensor.shape[1])
                         
                     # Append the batch_id information to every tensor

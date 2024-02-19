@@ -38,7 +38,7 @@ class CSNN(nn.Module):
         self.fc1 = nn.Linear(800, 11)
         self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
-        self.transient = False
+        self.transient = True
         self.inject = False
         self.one = True
 
@@ -133,21 +133,21 @@ class CSNN(nn.Module):
 
           cur1 = F.max_pool2d(self.conv1(x[step]), 2)
           spk1, self.mem['lif1'] = self.lif1(cur1, self.mem['lif1'])
-          # self.injection('lif1', curr_step)
+          self.injection('lif1', curr_step)
           
           cur2 = F.max_pool2d(self.conv2(spk1), 2)
           spk2, self.mem['lif2'] = self.lif2(cur2, self.mem['lif2'])
-          # self.injection('lif2', curr_step)
+          self.injection('lif2', curr_step)
 
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
           spk3, self.mem['lif3'] = self.lif3(cur3, self.mem['lif3'])
-          # self.injection('lif3', curr_step)
+          self.injection('lif3', curr_step)
           
           spk_rec.append(spk3)
           curr_step+=1
 
         
         spk_rec =torch.stack(spk_rec)  
-        _, results = spk_rec.sum(dim=0).max(1)
 
-        return results
+
+        return spk_rec.sum(dim=0)
