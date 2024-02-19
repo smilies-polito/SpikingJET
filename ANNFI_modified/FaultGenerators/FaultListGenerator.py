@@ -80,9 +80,9 @@ class FaultListGenerator:
         :return: The fault list
         """
 
-        for layer, size in self.network.size.items():
+        # for layer, size in self.network.size.items():
 
-            self.net_layer_shape[layer+".potential"] = size
+        #     self.net_layer_shape[layer+".potential"] = size
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'

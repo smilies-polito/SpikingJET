@@ -136,7 +136,7 @@ def load_DVSGesture_test_dataset(batch_size): # Not finished
     all_transform = transforms.Compose([denoise_transform, frame_transform])
     test_set = tonic.datasets.DVSGesture(save_to='./data', transform=all_transform, train=False)
     cached_testset = tonic.DiskCachedDataset(test_set, cache_path='./cache/dvsgesture/test')
-    test_loader = torch.utils.data.DataLoader(cached_testset, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=tonic.collation.PadTensors(batch_first=False))
+    test_loader = torch.utils.data.DataLoader(cached_testset, batch_size=batch_size, shuffle=False, drop_last=True, collate_fn=tonic.collation.PadTensors(batch_first=False))
 
     return test_loader
 
