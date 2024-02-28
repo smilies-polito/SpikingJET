@@ -21,7 +21,7 @@ class FaultInjectionManager:
                  network_name: str,
                  device: torch.device,
                  loader: DataLoader):
-
+        
         self.network = network
         self.network_name = network_name
         self.loader = loader
@@ -122,6 +122,7 @@ class FaultInjectionManager:
                     if fault.layer_name.split('.')[1] != 'potential':
                         # Inject faults in the weight
                         self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
+                        self.network.current = None
                     else:
                         self.network.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit, random.randint(0,24)]
                     

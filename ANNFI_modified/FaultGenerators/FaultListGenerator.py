@@ -40,13 +40,14 @@ class FaultListGenerator:
         # List of the shape of all the layers that contain weight
         self.net_layer_shape = {name: param.shape for name, param in self.network.named_parameters()
                                 if name.split('.')[0] in injectable_layer_names}
-
+        print(self.net_layer_shape)
 
         # List of the injectable params
         self.net_layer_params = {name: param for name, param in self.network.named_parameters()
                                  if name.split('.')[0] in injectable_layer_names}
         #print(self.net_layer_params)
             
+        print(self.network.state_dict())    
     @staticmethod
     def __compute_date_n(N: int,
                          p: float = 0.5,
@@ -82,7 +83,8 @@ class FaultListGenerator:
 
         for layer, size in self.network.size.items():
 
-            self.net_layer_shape[layer+".potential"] = size
+            size_no_batch = size[1:] #removing the batch correlated dimension
+            self.net_layer_shape[layer+".potential"] = size_no_batch
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
@@ -169,7 +171,7 @@ class FaultListGenerator:
                     # Write fault information to numpy
                     np.savez(f'{fault_list_filename}/{seed}_weights', golden=golden_value_list, faulty=faulty_value_list)
             
-            self.network.compute_mask()
+            #self.network.compute_mask()
             print('Fault List Generated')
 
         return fault_list

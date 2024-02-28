@@ -29,7 +29,7 @@ class CSNN(nn.Module):
         self.threshold3 = torch.ones(11)
         
         self.gradient = surrogate.fast_sigmoid(slope=25)
-
+        
         # Initialize layers
         self.conv1 = nn.Conv2d(2, 12, 5)
         self.lif1 = snn.Leaky(beta=self.beta1, threshold=self.threshold1, spike_grad=self.gradient, learn_beta=True, learn_threshold=True)
@@ -38,10 +38,10 @@ class CSNN(nn.Module):
         self.fc1 = nn.Linear(800, 11)
         self.lif3 = snn.Leaky(beta=self.beta3, threshold=self.threshold3, spike_grad=self.gradient, learn_beta=True, learn_threshold=True, output=True)
 
-        self.transient = True
-        self.inject = False
+        self.transient = False
         self.one = True
-
+        
+        self.inject = False
         self.current = None
         self.size = {}
         self.mem = {}
@@ -91,10 +91,10 @@ class CSNN(nn.Module):
         '''
         inject faults using the dictionary
         '''
-        
-        golden_value = float(self.mem[layer][tensor_index])
-        faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
-        self.mem[layer][tensor_index] = faulty_value
+        for i in range(self.size[layer][0]):
+          golden_value = float(self.mem[layer][(i,) + tensor_index])
+          faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
+          self.mem[layer][(i,) + tensor_index] = faulty_value
 
     def injection_xor(self, layer):    
       '''
@@ -107,12 +107,13 @@ class CSNN(nn.Module):
 
     def injection(self, layer, curr_step):
       if self.inject:
-        if self.one == False:
-          self.injection_xor(layer)
-        else:  
-          if self.current[0] == layer:
-            if self.transient == False or (self.transient and curr_step == self.current[3]): 
-              self.injection_dict(layer, self.current[1], self.current[2])
+        if self.current != None:  
+          if self.one == False:
+            self.injection_xor(layer)
+          else:  
+            if self.current[0] == layer:
+              if self.transient == False or (self.transient and curr_step == self.current[3]): 
+                self.injection_dict(layer, self.current[1], self.current[2])
       else:
         self.size[layer] = self.mem[layer].shape
 
