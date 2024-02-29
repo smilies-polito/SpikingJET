@@ -150,5 +150,7 @@ class CSNN(nn.Module):
         
         spk_rec =torch.stack(spk_rec)  
 
+        res_vec = spk_rec.sum(dim=0)
 
-        return spk_rec.sum(dim=0)
+        res_vec = F.softmax(res_vec)
+        return res_vec
