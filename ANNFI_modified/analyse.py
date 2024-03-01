@@ -1,92 +1,120 @@
 import torch
 import numpy as np
 import pandas as pd
+import os
 
-def normalize_tensor(x):
-        # Calculate min and max values
-    min_val = torch.min(x)
-    max_val = torch.max(x)
+def SDC_1(faulty_batch, clean_batch):
+    # Calculates the SDC-1 score
+    faulty_labels = torch.argmax(faulty_batch, dim=1)
+    clean_labels = torch.argmax(clean_batch, dim=1)
 
-    # Normalize tensor between 0 and 1
-    x = (x - min_val) / (max_val - min_val)
-
-    return x
-
-def cross_entropy(tensor1, tensor2):
-
-    return -torch.sum(tensor1 * torch.log(tensor2 + 1e-10))
+    sdc1_score = torch.mean((faulty_labels == clean_labels).float())
+    return sdc1_score.item()
 
 
+def SDC_percentage(faulty_batch, clean_batch, threshold):
+    # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
+    clean_labels, clean_index = torch.max(clean_batch, dim=1) 
+    
+    clean_ind_mask = torch.zeros(clean.shape[0],clean.shape[1])
+    clean_ind_mask.scatter_(1, clean_index.unsqueeze(1), 1)
+    faulty_masked = clean_ind_mask * faulty_batch
 
-def assess(fault_id, batch_id):
-    fault_path = '/home/ldapusers/gogebakan/snn_fault_injection/ANNFI_modified/output/CSNN/pt/faulty/batch_size_8/fault_'+str(fault_id)+'_batch_'+str(batch_id)+'.pt'
-    faulty = torch.load(fault_path)
+    faulty_labels, __ = torch.max(faulty_masked, dim=1)
 
-    clean_path = '/home/ldapusers/gogebakan/snn_fault_injection/ANNFI_modified/output/CSNN/pt/clean/batch_size_8/batch_'+str(batch_id)+'.pt'
-    clean = torch.load(clean_path)
+    difference_vector = 100*(faulty_labels - clean_labels)/clean_labels
+    score = torch.mean((abs(difference_vector) < threshold).float())
 
-    label_path = '/home/ldapusers/gogebakan/snn_fault_injection/ANNFI_modified/output/CSNN/pt/label/batch_size_8/batch_'+str(batch_id)+'.pt'
-    true_labels = torch.load(label_path)
+    return score.item()
 
-    true_labels_one_shot = torch.eye(11)[true_labels]
+def get_faultID_per_layer(csv_path):
+    
+    PATH = os.getcwd()
+    fault_list_path =PATH + '/output/fault_list' + csv_path
+    df_fault = pd.read_csv(fault_list_path)
 
-
-
-
-
-    # print('faulty.size()', faulty.size())
-    # print('clean.size()', clean.size())
-    # print('label.size()', true_labels.size())
-    # print('true_label_one_shot.size()', true_labels_one_shot.size())
-    # print('clean[0:2,:]', clean[0:2,:])
-    # print('faulty[0:2,:]', faulty[0:2,:])
-    # print( clean == faulty)
-    # print(true_labels_one_shot)
+    ID_dict = {}
+    for layer in df_fault["Layer"].unique():
+        layer_df = df_fault[df_fault['Layer'] == layer]
+        ID_dict[layer] = layer_df['Injection'].tolist()
+    
+    return ID_dict, df_fault
 
 
+ID_dict, df_fault = get_faultID_per_layer('/CSNN/51196_fault_list.csv')
 
-    # Calculate cross-entropy loss
-    cross_entropy_loss = torch.nn.functional.kl_div(faulty, clean)
-    true_cross_entropy_loss = torch.nn.functional.kl_div(true_labels_one_shot, clean)
+batch_size = 16
+model_name = 'CSNN'
+PATH = os.getcwd()
+faulty_path_prefix = PATH + '/output/' + model_name + '/pt/faulty/batch_size_' + str(batch_size)
+clean_path_prefix = PATH + '/output/' + model_name + '/pt/clean/batch_size_' + str(batch_size)
 
-    # Calculate accuracy
-    faulty_labels = torch.argmax(faulty, dim=1)
-    clean_labels = torch.argmax(clean, dim=1)
+sdc_1_dict = {}
+sdc_5per_dict = {}
+score = {}
 
-    diff_accuracy = torch.mean((faulty_labels == clean_labels).float())
-    clean_accuracy = torch.mean((true_labels == clean_labels).float())
+for layer in ID_dict.keys():
+    count = 0
+    tot_SDC_1_score = 0
+    tot_SDC_5per_score = 0
+    tot_SDC_10per_score = 0
+    tot_SDC_15per_score = 0
+    tot_SDC_20per_score = 0
 
-    print("diff Cross-entropy Loss:", cross_entropy_loss.item())
-    print("true Cross-entropy Loss:", true_cross_entropy_loss.item())
-    print("Diff Accuracy:", diff_accuracy.item())
-    print("Clean Accuracy:", clean_accuracy.item())
+    print(str(len(ID_dict[layer])) + ' fault injected into ' + layer)
+
+    for fault_id in ID_dict[layer]:
+
+        
+        faulty_path_list = [filename for filename in os.listdir(faulty_path_prefix) if filename.startswith('fault_' + str(fault_id) + '_batch_')]
+        # print(faulty_path_list)
+        # print('/fault_' + str(fault_id) + '_batch_')
+
+        for batch_path in faulty_path_list:
+            batch_id = batch_path.split('_')[-1].split('.')[0]
+
+            clean_path = clean_path_prefix + '/batch_'+str(batch_id)+'.pt'
+            faulty_path = faulty_path_prefix + '/' +batch_path
+
+            clean = torch.load(clean_path)
+            faulty = torch.load(faulty_path)
+            
+            SDC_1_score = SDC_1(faulty, clean)
+            SDC_5per_score = SDC_percentage(faulty, clean, 5)
+            SDC_10per_score = SDC_percentage(faulty, clean, 10)
+            SDC_15per_score = SDC_percentage(faulty, clean, 15)
+            SDC_20per_score = SDC_percentage(faulty, clean, 20)
+
+            count +=1
+            tot_SDC_1_score += SDC_1_score
+            tot_SDC_5per_score += SDC_5per_score
+            tot_SDC_10per_score += SDC_10per_score
+            tot_SDC_15per_score += SDC_15per_score
+            tot_SDC_20per_score += SDC_20per_score
+
+            # if count % 10000 == 0:
+            #     check1 = tot_SDC_1_score/count
+            #     check2 = tot_SDC_5per_score/count
+            #     print('Checkpoint SDC_1_score at {} is {}'.format(count, check1))
+            #     print('Checkpoint SDC_5per_score at {} is {}'.format(count, check2))
+            #     print('/n')
+
+    print('SDC_1 score for ' + layer + ' is ' + str(tot_SDC_1_score/count))
+    print('SDC_5per score for ' + layer + ' is ' + str(tot_SDC_5per_score/count))
+    print('SDC_10per score for ' + layer + ' is ' + str(tot_SDC_10per_score/count))
+    print('SDC_15per score for ' + layer + ' is ' + str(tot_SDC_15per_score/count))
+    print('SDC_20per score for ' + layer + ' is ' + str(tot_SDC_20per_score/count))
+
+    sdc_1_dict[layer] = tot_SDC_1_score/count
+    sdc_5per_dict[layer] = tot_SDC_5per_score/count
+    score[layer] = tot_SDC_1_score/count, tot_SDC_5per_score/count, tot_SDC_10per_score/count, tot_SDC_15per_score/count, tot_SDC_20per_score/count
+    print(sdc_1_dict)
+    print(sdc_5per_dict)
+    print('\n')
     print('\n')
 
+df_score = pd.DataFrame(data=score, index=['SDC_1', 'SDC_5%', 'SDC_10%', 'SDC_15%', 'SDC_20%'])
+print(df_score)
 
-
-# assess(18,0)
-# assess(18,1)
-# assess(18,2)
-# assess(18,3)
-# assess(36,1)
-# assess(44,0)
-    
-
-fault_list_path = '/home/ldapusers/gogebakan/snn_fault_injection/ANNFI_modified/output/fault_list/CSNN/51196_fault_list.csv'
-fault_list = pd.read_csv(fault_list_path)
-print(fault_list)
-print(fault_list["Layer"].unique())
-
-conv1_df = fault_list[fault_list['Layer'] == 'conv1.weight']
-print(conv1_df['Injection'].tolist())
-
-layer_id = {}
-for layer in fault_list["Layer"].unique():
-    conv1_df = fault_list[fault_list['Layer'] == layer]
-    layer_id[layer] = conv1_df['Injection'].tolist()
-
-print(layer_id.keys())
-
-print(layer_id['conv2.weight'])
-
+df_score.to_csv('result.csv', index=True)
 
