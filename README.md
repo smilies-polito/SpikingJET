@@ -24,7 +24,9 @@ After create it once you don't have recreate it everytime. Whenever you want to 
 
 ```sh
    python3 main.py -n CSNN -b 16
+   python3 analyse.py -n CSNN -b 16 -fl 51196_fault_list.csv
 ```
+**_NOTE:_** The name of the fault list file is generated randomly. It must be checked and run the script accordingly.
 
 **_NOTE:_** For SNN layers, learn_beta and learn_threshold values must be "True" in order to access it even though it isn't updated during the training.  
 

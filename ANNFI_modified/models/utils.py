@@ -122,7 +122,7 @@ def load_CIFAR10_datasets(train_batch_size=32, train_split=0.8, test_batch_size=
 
     return train_loader, val_loader, test_loader
 
-def load_DVSGesture_test_dataset(batch_size): # Not finished
+def load_DVSGesture_test_dataset(batch_size): 
     ### Transforms
     size = tonic.datasets.DVSGesture.sensor_size
 
@@ -140,6 +140,23 @@ def load_DVSGesture_test_dataset(batch_size): # Not finished
 
     return test_loader
 
+def load_NMNIST_test_dataset(batch_size):
+    sensor_size = tonic.datasets.NMNIST.sensor_size
+
+    # Denoise removes isolated, one-off events
+    # time_window
+    frame_transform = transforms.Compose([transforms.Denoise(filter_time=10000),
+                                        transforms.ToFrame(sensor_size=sensor_size,
+                                                            n_time_bins=100)
+                                        ])
+
+    testset = tonic.datasets.NMNIST(save_to='./data', transform=frame_transform, train=False)
+
+    # no augmentations for the testset
+    cached_testset = tonic.DiskCachedDataset(testset, cache_path='./data/cache/nmnist/test')
+    testloader = torch.utils.data.DataLoader(cached_testset, batch_size=batch_size, shuffle=False, drop_last=True,collate_fn=tonic.collation.PadTensors(batch_first=False))
+
+    return testloader
 
 def load_from_dict(network, device, path, function=None):
     if '.th' in path:

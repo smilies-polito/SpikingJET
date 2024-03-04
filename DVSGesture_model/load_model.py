@@ -47,7 +47,8 @@ cached_testset = tonic.DiskCachedDataset(test_set, cache_path='./cache/dvsgestur
 test_loader = torch.utils.data.DataLoader(cached_testset, batch_size=32, shuffle=True, drop_last=True, collate_fn=tonic.collation.PadTensors(batch_first=False))
 
 net = CSNN().to(device)
-
+ts.summary(net, input_size=(2, 32, 32))
+exit()
 
 # module_classes = (nn.Conv2d, snn.Leaky)
 module_classes = (nn.Conv2d)

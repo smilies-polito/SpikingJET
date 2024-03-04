@@ -11,3 +11,4 @@ __pycache__
 *.hdf5
 *.tar.gz
 weights
+data
