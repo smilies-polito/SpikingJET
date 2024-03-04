@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import pandas as pd
 import os
+import argparse
+
 
 def SDC_1(faulty_batch, clean_batch):
     # Calculates the SDC-1 score
@@ -41,10 +43,31 @@ def get_faultID_per_layer(csv_path):
     return ID_dict, df_fault
 
 
-ID_dict, df_fault = get_faultID_per_layer('/CSNN/51196_fault_list.csv')
+parser = argparse.ArgumentParser(description='Analyze fault injection results',
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-batch_size = 16
-model_name = 'CSNN'
+parser.add_argument('--fault-list', '-fl', type=str,
+                    help='File name of the fault list')
+parser.add_argument('--batch-size', '-b', type=int, default=64,
+                    help='Test set batch size')
+parser.add_argument('--network-name', '-n', type=str,
+                    required=True,
+                    help='Target network',
+                    choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
+                                'DenseNet121', 'CSNN'])
+
+parsed_args = parser.parse_args()
+
+# batch_size = 16
+# model_name = 'CSNN'
+# fault_list_name = '51196_fault_list.csv'
+
+batch_size = parsed_args.batch_size
+model_name = parsed_args.network_name
+fault_list_name = parsed_args.fault_list
+
+ID_dict, df_fault = get_faultID_per_layer('/' + model_name + '/' + fault_list_name) #'/CSNN/51196_fault_list.csv'
+
 PATH = os.getcwd()
 faulty_path_prefix = PATH + '/output/' + model_name + '/pt/faulty/batch_size_' + str(batch_size)
 clean_path_prefix = PATH + '/output/' + model_name + '/pt/clean/batch_size_' + str(batch_size)
@@ -107,14 +130,17 @@ for layer in ID_dict.keys():
 
     sdc_1_dict[layer] = tot_SDC_1_score/count
     sdc_5per_dict[layer] = tot_SDC_5per_score/count
-    score[layer] = tot_SDC_1_score/count, tot_SDC_5per_score/count, tot_SDC_10per_score/count, tot_SDC_15per_score/count, tot_SDC_20per_score/count
+    score[layer] = int(len(ID_dict[layer])),int(count), tot_SDC_1_score/count, tot_SDC_5per_score/count, tot_SDC_10per_score/count, tot_SDC_15per_score/count, tot_SDC_20per_score/count
     print(sdc_1_dict)
     print(sdc_5per_dict)
     print('\n')
     print('\n')
 
-df_score = pd.DataFrame(data=score, index=['SDC_1', 'SDC_5%', 'SDC_10%', 'SDC_15%', 'SDC_20%'])
+df_score = pd.DataFrame(data=score, index=['# of faults','# of injections','SDC_1', 'SDC_5%', 'SDC_10%', 'SDC_15%', 'SDC_20%'])
 print(df_score)
 
-df_score.to_csv('result.csv', index=True)
+PATH = os.getcwd()
+result_name = fault_list_name.split('.')[0]
+result_path =PATH + '/output/fault_list' + '/' + model_name + '/' + result_name + '_result_batch_size_' + str(batch_size) + '.csv'
+df_score.to_csv(result_path, index=True)
 
