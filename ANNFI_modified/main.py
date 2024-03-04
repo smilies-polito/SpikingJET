@@ -36,7 +36,7 @@ def main(args):
         loader = load_ImageNet_validation_set(batch_size=args.batch_size,
                                               image_per_class=1)
 
-
+    
     
     # Execute the fault injection campaign with the smart network
     fault_injection_executor = FaultInjectionManager(network=network,
@@ -44,6 +44,7 @@ def main(args):
                                                      device=device,
                                                      loader=loader)
 
+    network.FaultInjector = fault_injection_executor
     
     fault_manager = FaultListGenerator(network=network,
                                        network_name=args.network_name,
@@ -55,7 +56,8 @@ def main(args):
     
     # Generate fault list
     fault_list = fault_manager.get_fault_list(load_fault_list=False,
-                                                     save_fault_list=True)
+                                                     save_fault_list=True,
+                                                     FaultInjectionManager = fault_injection_executor)
 
     #This function runs fault injections
     fault_injection_executor.run_faulty_campaign(fault_list=fault_list)

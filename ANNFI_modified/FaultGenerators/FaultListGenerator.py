@@ -32,7 +32,6 @@ class FaultListGenerator:
 
         self.device = device
 
-
         # Name of the injectable layers
         injectable_layer_names = [name.split('.')[0] for name, module in self.network.named_modules()
                                   if isinstance(module, module_classes)]
@@ -69,7 +68,8 @@ class FaultListGenerator:
                                 seed=51196,
                                 p=0.5,
                                 e=0.01,
-                                t=2.58):
+                                t=2.58,
+                                FaultInjectionManager=None):
         """
         Generate a fault list for the potential and beta of leaky layers and  according to the DATE09 formula
         :param load_fault_list: Default False. Try to load an existing fault list if it exists, otherwise generate it
@@ -81,7 +81,7 @@ class FaultListGenerator:
         :return: The fault list
         """
 
-        for layer, size in self.network.size.items():
+        for layer, size in FaultInjectionManager.size.items():
 
             size_no_batch = size[1:] #removing the batch correlated dimension
             self.net_layer_shape[layer+".potential"] = size_no_batch
@@ -162,9 +162,9 @@ class FaultListGenerator:
                         else: 
                             golden_value_list.append(0)
                             faulty_value_list.append(0)
-                            if layer not in self.network.faults.keys(): 
-                                self.network.faults[layer] = []
-                            self.network.faults[layer].append([fault.tensor_index, fault.bit])
+                            if layer not in FaultInjectionManager.faults.keys(): 
+                                FaultInjectionManager.faults[layer] = []
+                            FaultInjectionManager.faults[layer].append([fault.tensor_index, fault.bit])
                         # Write fault list to csv
                         writer_fault.writerow([index, fault.layer_name, fault.tensor_index, fault.bit])    
 
@@ -175,3 +175,6 @@ class FaultListGenerator:
             print('Fault List Generated')
 
         return fault_list
+
+
+  

@@ -14,6 +14,9 @@ from tqdm import tqdm
 from FaultGenerators.WeightFaultInjector import WeightFaultInjector
 
 
+from FaultGenerators.utils import float32_bit_flip
+
+
 class FaultInjectionManager:
 
     def __init__(self,
@@ -26,6 +29,17 @@ class FaultInjectionManager:
         self.network_name = network_name
         self.loader = loader
         self.device = device
+
+        self.transient = False
+        self.one = True
+        
+        self.inject = False
+        self.current = None
+        self.size = {}
+        self.faults = {}
+        self.mask = {}
+        self.num_step = 25
+
 
         # The clean output of the network after the first run
         self.clean_output_scores = list()
@@ -50,7 +64,7 @@ class FaultInjectionManager:
         :return: A string containing the formatted time elapsed from the beginning to the end of the fault injection
         campaign
         """
-        self.network.inject = False
+        self.inject = False
         with torch.no_grad():
 
             # Start measuring the time elapsed
@@ -100,7 +114,7 @@ class FaultInjectionManager:
         total_different_predictions = 0
         total_predictions = 0
 
-        self.network.inject = True
+        self.inject = True
         with torch.no_grad():
 
             # Start measuring the time elapsed
@@ -122,11 +136,11 @@ class FaultInjectionManager:
                     if fault.layer_name.split('.')[1] != 'potential':
                         # Inject faults in the weight
                         self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
-                        self.network.current = None
+                        self.current = None
                     else:
-                        self.network.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit, random.randint(0,24)]
+                        self.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit, random.randint(0,24)]
                     
-                    if fault.layer_name.split('.')[1] != 'potential' or self.network.one == True:
+                    if fault.layer_name.split('.')[1] != 'potential' or self.one == True:
                         # Run inference on the current batch
                         faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
 
@@ -201,3 +215,70 @@ class FaultInjectionManager:
         else:
             print('FaultInjectionManager: Invalid fault mode')
             quit()
+
+    def flatten_layer_dim(self, layer):
+      '''
+      For a given layer (Multi dimensional array) compute
+      the dimension of the flatten array (Mono dimensional array) 
+      '''
+      n = 1
+      for dim in self.size[layer]:
+        n = n*dim  
+      return n  
+
+    def compute_flatten_index(self, layer, index_arr):
+      '''
+      Given an index of the layer (Multi dimensional array) return
+      the corresponding index of the flatten array
+      '''
+      index = 0
+      for n in range(len(index_arr)):
+        i = n+1
+        tmp =  index_arr[-i]
+        for y in range(n):
+          i2 = y+1
+          tmp = tmp *self.size[layer][-i2]
+        index = index + tmp 
+      return index   
+ 
+    def compute_mask(self):
+      '''
+      Compute the mask to perform the xor injection
+      '''
+      for layer, faults in self.faults.items():
+        if layer not in self.mask.keys():
+          self.mask[layer] = torch.zeros(self.size[layer], dtype=torch.int32)
+        for tensor_index, bit_index in faults:
+          
+          self.mask[layer][tensor_index] += 2**bit_index
+          
+
+    def injection_dict(self, pot, layer, tensor_index, bit_index):
+        '''
+        inject faults using the dictionary
+        '''
+        for i in range(self.size[layer][0]):
+          golden_value = float(pot[(i,) + tensor_index])
+          faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
+          pot[(i,) + tensor_index] = faulty_value
+
+    def injection_xor(self, pot, layer):    
+      '''
+        inject faults using the XOR mask
+      '''
+      pot_int = pot.view(torch.int)
+      pot_int_incjeted = torch.bitwise_xor(pot_int, self.mask[layer])
+      pot = pot_int_incjeted.view(torch.float)
+
+
+    def injection(self, pot, layer, curr_step):
+      if self.inject:
+        if self.current != None:  
+          if self.one == False:
+            self.injection_xor(pot, layer)
+          else:  
+            if self.current[0] == layer:
+              if self.transient == False or (self.transient and curr_step == self.current[3]): 
+                self.injection_dict(pot, layer, self.current[1], self.current[2])
+      else:
+        self.size[layer] = pot.shape
