@@ -9,7 +9,7 @@ from typing import Type
 
 from FaultGenerators.WeightFault import WeightFault
 
-from torch.nn import Module, Conv2d
+from torch.nn import Module, Conv2d, Linear
 import torch
 
 import snntorch as snn
@@ -25,7 +25,7 @@ class FaultListGenerator:
                  network: Module,
                  network_name: str,
                  device: torch.device,
-                 module_classes: Type[Module] = (Conv2d, snn.Leaky)): # 
+                 module_classes: Type[Module] = (Conv2d, snn.Leaky, Linear)): # 
 
         self.network = network
         self.network_name = network_name
