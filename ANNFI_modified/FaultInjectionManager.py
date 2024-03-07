@@ -36,6 +36,7 @@ class FaultInjectionManager:
         self.inject = False
         self.current = None
         self.size = {}
+        self.spike = {}
         self.faults = {}
         self.mask = {}
         self.num_step = 25
@@ -133,14 +134,14 @@ class FaultInjectionManager:
                 # Inject all the faults in a single batch
                 for fault_id, fault in enumerate(fault_list):
                     
-                    if fault.layer_name.split('.')[1] != 'potential':
+                    if fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike':
                         # Inject faults in the weight
                         self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
                         self.current = None
                     else:
-                        self.current = [fault.layer_name.split('.')[0], fault.tensor_index, fault.bit, random.randint(0,24)]
+                        self.current = [fault.layer_name.split('.')[0], fault.layer_name.split('.')[1], fault.tensor_index, fault.bit, random.randint(0,24)]
                     
-                    if fault.layer_name.split('.')[1] != 'potential' or self.one == True:
+                    if (fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike') or self.one == True:
                         # Run inference on the current batch
                         faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
 
@@ -161,7 +162,7 @@ class FaultInjectionManager:
                         different_predictions_percentage = 100 * total_different_predictions / total_predictions
                         pbar.set_postfix({'Different': f'{different_predictions_percentage:.4f}%'})
 
-                    if fault.layer_name.split('.')[1] != 'potential':
+                    if fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike':
                         # Restore the golden value
                         self.weight_fault_injector.restore_golden()
 
@@ -253,14 +254,20 @@ class FaultInjectionManager:
           self.mask[layer][tensor_index] += 2**bit_index
           
 
-    def injection_dict(self, pot, layer, tensor_index, bit_index):
+    def injection_dict(self, pot, spike, layer, pot_or_spike, tensor_index, bit_index):
         '''
         inject faults using the dictionary
         '''
-        for i in range(self.size[layer][0]):
-          golden_value = float(pot[(i,) + tensor_index])
-          faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
-          pot[(i,) + tensor_index] = faulty_value
+        if pot_or_spike == "potential":
+          for i in range(self.size[layer][0]):
+            golden_value = float(pot[(i,) + tensor_index])
+            faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
+            pot[(i,) + tensor_index] = faulty_value
+        else: #to be modified
+          for i in range(self.size[layer][0]):
+            golden_value = float(pot[(i,) + tensor_index])
+            faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
+            pot[(i,) + tensor_index] = faulty_value     
 
     def injection_xor(self, pot, layer):    
       '''
@@ -271,14 +278,18 @@ class FaultInjectionManager:
       pot = pot_int_incjeted.view(torch.float)
 
 
-    def injection(self, pot, layer, curr_step):
+    def injection(self, spike, pot, layer, curr_step):
       if self.inject:
         if self.current != None:  
           if self.one == False:
             self.injection_xor(pot, layer)
           else:  
             if self.current[0] == layer:
-              if self.transient == False or (self.transient and curr_step == self.current[3]): 
-                self.injection_dict(pot, layer, self.current[1], self.current[2])
+              if self.transient == False or (self.transient and curr_step == self.current[4]):
+                
+                self.injection_dict(pot, spike, layer, self.current[1], self.current[2], self.current[3])
+                
+                
       else:
         self.size[layer] = pot.shape
+        self.spike[layer] = spike.shape

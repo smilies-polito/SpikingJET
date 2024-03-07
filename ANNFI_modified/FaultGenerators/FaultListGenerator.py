@@ -86,6 +86,11 @@ class FaultListGenerator:
             size_no_batch = size[1:] #removing the batch correlated dimension
             self.net_layer_shape[layer+".potential"] = size_no_batch
 
+        for layer, size in FaultInjectionManager.spike.items():
+
+            size_no_batch = size[1:] #removing the batch correlated dimension
+            self.net_layer_shape[layer+".spike"] = size_no_batch    
+
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
 
