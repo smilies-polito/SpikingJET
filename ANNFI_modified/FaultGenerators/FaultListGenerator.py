@@ -39,14 +39,14 @@ class FaultListGenerator:
         # List of the shape of all the layers that contain weight
         self.net_layer_shape = {name: param.shape for name, param in self.network.named_parameters()
                                 if name.split('.')[0] in injectable_layer_names}
-        print(self.net_layer_shape)
+        #print(self.net_layer_shape)
 
         # List of the injectable params
         self.net_layer_params = {name: param for name, param in self.network.named_parameters()
                                  if name.split('.')[0] in injectable_layer_names}
         #print(self.net_layer_params)
             
-        print(self.network.state_dict())    
+        #print(self.network.state_dict())    
     @staticmethod
     def __compute_date_n(N: int,
                          p: float = 0.5,
@@ -90,6 +90,8 @@ class FaultListGenerator:
 
             size_no_batch = size[1:] #removing the batch correlated dimension
             self.net_layer_shape[layer+".spike"] = size_no_batch    
+
+        print(self.net_layer_shape)
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
@@ -154,7 +156,7 @@ class FaultListGenerator:
                         
                         layer = fault.layer_name.split('.')[0]
                         location = fault.layer_name.split('.')[1]
-                        if location != 'potential': #this controll checks if the fault is on potentian, in this case jump this code cause fault value is not available
+                        if location != 'potential' and location != 'spike': #this controll checks if the fault is on potentian or spike, in this case jump this code cause fault value is not available
                             
                             # Get the golden value
                             golden_value = float(self.net_layer_params[fault.layer_name][fault.tensor_index])

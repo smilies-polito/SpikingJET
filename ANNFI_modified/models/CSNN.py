@@ -62,6 +62,7 @@ class CSNN(nn.Module):
           cur2 = F.max_pool2d(self.conv2(spk1), 2)
           spk2, mem_lif2 = self.lif2(cur2, mem_lif2)
           self.FaultInjector.injection(mem_lif2, spk2, 'lif2', curr_step)
+          
 
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
           spk3, mem_lif3 = self.lif3(cur3, mem_lif3)
