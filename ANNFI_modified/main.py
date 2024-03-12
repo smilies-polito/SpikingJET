@@ -3,7 +3,7 @@ import torch
 from FaultInjectionManager import FaultInjectionManager
 from FaultGenerators.FaultListGenerator import FaultListGenerator
 
-from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets, load_DVSGesture_test_dataset, load_NMNIST_test_dataset
+from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets, load_DVSGesture_test_dataset, load_NMNIST_test_dataset, load_SHD_test_dataset
 
 from utils import load_network, get_device, parse_args, UnknownNetworkException, plot_distribution
 
@@ -34,6 +34,8 @@ def main(args):
         loader = load_DVSGesture_test_dataset(batch_size=args.batch_size)
     elif 'NMNIST' in args.network_name:
         loader = load_NMNIST_test_dataset(batch_size=args.batch_size)
+    elif 'SHD' in args.network_name:
+        loader = load_SHD_test_dataset(batch_size=args.batch_size)
     else:
         loader = load_ImageNet_validation_set(batch_size=args.batch_size,
                                               image_per_class=1)

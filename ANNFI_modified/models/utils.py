@@ -158,6 +158,22 @@ def load_NMNIST_test_dataset(batch_size):
 
     return testloader
 
+def load_SHD_test_dataset(batch_size):
+    transform = transforms.Compose(
+        [
+            transforms.ToFrame(
+                sensor_size=tonic.datasets.hsd.SHD.sensor_size,
+                n_time_bins=100,
+            )
+        ]
+    )
+
+    test_set 	= tonic.datasets.hsd.SHD(save_to='./data', train=False,transform = transform)
+
+    test_loader 	= torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, drop_last=True)
+    return test_loader
+
+
 def load_from_dict(network, device, path, function=None):
     if '.th' in path:
         # state_dict = torch.load(path, map_location=device)['state_dict']
