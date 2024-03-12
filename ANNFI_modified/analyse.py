@@ -10,22 +10,37 @@ def SDC_1(faulty_batch, clean_batch):
     faulty_labels = torch.argmax(faulty_batch, dim=1)
     clean_labels = torch.argmax(clean_batch, dim=1)
 
-    sdc1_score = torch.mean((faulty_labels == clean_labels).float())
+    sdc1_score = torch.mean((faulty_labels != clean_labels).float())
     return sdc1_score.item()
 
 
-def SDC_percentage(faulty_batch, clean_batch, threshold):
+# def SDC_percentage(faulty_batch, clean_batch, threshold):
+#     # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
+#     clean_labels, clean_index = torch.max(clean_batch, dim=1) 
+    
+#     clean_ind_mask = torch.zeros(clean.shape[0],clean.shape[1])
+#     clean_ind_mask.scatter_(1, clean_index.unsqueeze(1), 1)
+#     faulty_masked = clean_ind_mask * faulty_batch
+
+#     faulty_labels, __ = torch.max(faulty_masked, dim=1)
+
+#     difference_vector = 100*(faulty_labels - clean_labels)/clean_labels
+#     score = torch.mean((abs(difference_vector) < threshold).float())
+
+#     return score.item()
+
+def SDC_percentage(faulty_batch, clean_batch, lower_th, higher_th):
     # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
     clean_labels, clean_index = torch.max(clean_batch, dim=1) 
-    
-    clean_ind_mask = torch.zeros(clean.shape[0],clean.shape[1])
-    clean_ind_mask.scatter_(1, clean_index.unsqueeze(1), 1)
-    faulty_masked = clean_ind_mask * faulty_batch
+    faulty_labels, faulty_index = torch.max(faulty_batch, dim=1)
 
-    faulty_labels, __ = torch.max(faulty_masked, dim=1)
+    same_ind = torch.eq(clean_index, faulty_index)
+    diff_vec = torch.abs(clean_labels - faulty_labels)/clean_labels
+    lower_vec = diff_vec < higher_th
+    higher_vec = diff_vec > lower_th
 
-    difference_vector = 100*(faulty_labels - clean_labels)/clean_labels
-    score = torch.mean((abs(difference_vector) < threshold).float())
+    res_per = same_ind & lower_vec & higher_vec
+    score = torch.mean(res_per.float())
 
     return score.item()
 
@@ -54,7 +69,7 @@ parser.add_argument('--network-name', '-n', type=str,
                     required=True,
                     help='Target network',
                     choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                'DenseNet121', 'CSNN'])
+                                'DenseNet121', 'CSNN', 'NMNIST'])
 
 parsed_args = parser.parse_args()
 
@@ -79,10 +94,10 @@ score = {}
 for layer in ID_dict.keys():
     count = 0
     tot_SDC_1_score = 0
-    tot_SDC_5per_score = 0
-    tot_SDC_10per_score = 0
-    tot_SDC_15per_score = 0
-    tot_SDC_20per_score = 0
+    tot_SDCper_0_5 = 0
+    tot_SDCper_5_10 = 0
+    tot_SDCper_10_20 = 0
+    tot_SDCper_20_100 = 0
 
     print(str(len(ID_dict[layer])) + ' fault injected into ' + layer)
 
@@ -103,40 +118,40 @@ for layer in ID_dict.keys():
             faulty = torch.load(faulty_path)
             
             SDC_1_score = SDC_1(faulty, clean)
-            SDC_5per_score = SDC_percentage(faulty, clean, 5)
-            SDC_10per_score = SDC_percentage(faulty, clean, 10)
-            SDC_15per_score = SDC_percentage(faulty, clean, 15)
-            SDC_20per_score = SDC_percentage(faulty, clean, 20)
+            SDCper_0_5 = SDC_percentage(faulty, clean,0, 0.05)
+            SDCper_5_10 = SDC_percentage(faulty, clean, 0.05,0.1)
+            SDCper_10_20 = SDC_percentage(faulty, clean, 0.1,0.2)
+            SDCper_20_100 = SDC_percentage(faulty, clean, 0.2,1)
 
             count +=1
             tot_SDC_1_score += SDC_1_score
-            tot_SDC_5per_score += SDC_5per_score
-            tot_SDC_10per_score += SDC_10per_score
-            tot_SDC_15per_score += SDC_15per_score
-            tot_SDC_20per_score += SDC_20per_score
+            tot_SDCper_0_5 += SDCper_0_5
+            tot_SDCper_5_10 += SDCper_5_10
+            tot_SDCper_10_20 += SDCper_10_20
+            tot_SDCper_20_100 += SDCper_20_100
 
-            # if count % 10000 == 0:
-            #     check1 = tot_SDC_1_score/count
-            #     check2 = tot_SDC_5per_score/count
-            #     print('Checkpoint SDC_1_score at {} is {}'.format(count, check1))
-            #     print('Checkpoint SDC_5per_score at {} is {}'.format(count, check2))
-            #     print('/n')
+            if count % 10000 == 0:
+                check1 = tot_SDC_1_score/count
+                check2 = tot_SDCper_0_5/count
+                print('Checkpoint SDC_1_score at {} is {}'.format(count, check1))
+                print('Checkpoint SDC_5per_score at {} is {}'.format(count, check2))
+                print('/n')
 
     print('SDC_1 score for ' + layer + ' is ' + str(tot_SDC_1_score/count))
-    print('SDC_5per score for ' + layer + ' is ' + str(tot_SDC_5per_score/count))
-    print('SDC_10per score for ' + layer + ' is ' + str(tot_SDC_10per_score/count))
-    print('SDC_15per score for ' + layer + ' is ' + str(tot_SDC_15per_score/count))
-    print('SDC_20per score for ' + layer + ' is ' + str(tot_SDC_20per_score/count))
+    print('SDC_5per score for ' + layer + ' is ' + str(tot_SDCper_0_5/count))
+    # print('SDC_10per score for ' + layer + ' is ' + str(tot_SDC_10per_score/count))
+    # print('SDC_15per score for ' + layer + ' is ' + str(tot_SDC_15per_score/count))
+    # print('SDC_20per score for ' + layer + ' is ' + str(tot_SDC_20per_score/count))
 
     sdc_1_dict[layer] = tot_SDC_1_score/count
-    sdc_5per_dict[layer] = tot_SDC_5per_score/count
-    score[layer] = int(len(ID_dict[layer])),int(count), tot_SDC_1_score/count, tot_SDC_5per_score/count, tot_SDC_10per_score/count, tot_SDC_15per_score/count, tot_SDC_20per_score/count
+    sdc_5per_dict[layer] = tot_SDCper_0_5/count
+    score[layer] = int(len(ID_dict[layer])),int(count), tot_SDC_1_score/count, tot_SDCper_0_5/count, tot_SDCper_5_10/count, tot_SDCper_10_20/count, tot_SDCper_20_100/count
     print(sdc_1_dict)
     print(sdc_5per_dict)
     print('\n')
     print('\n')
 
-df_score = pd.DataFrame(data=score, index=['# of faults','# of injections','SDC_1', 'SDC_5%', 'SDC_10%', 'SDC_15%', 'SDC_20%'])
+df_score = pd.DataFrame(data=score, index=['# of faults','# of injections','SDC_1', 'SDC_5%', 'SDC_10%', 'SDC_20%', 'SDC_20_100%'])
 print(df_score)
 
 PATH = os.getcwd()
