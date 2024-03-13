@@ -27,4 +27,5 @@ From: ubuntu:22.04
 	pip install scipy
 	pip install torch-summary
     pip install tonic
+	pip install panda
 
