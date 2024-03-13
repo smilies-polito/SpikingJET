@@ -59,6 +59,7 @@ class SHD(nn.Module):
 
 		# Record the final layer
 		spk2_rec = []
+		mem2_rec = []
 
 		input_spikes = input_spikes.float()
 		spk1 = torch.zeros(self.num_hidden).to(self.device)
@@ -71,10 +72,18 @@ class SHD(nn.Module):
 			spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
 
 			spk2_rec.append(spk2)
+			mem2_rec.append(mem2)
 
 		spk2_rec = torch.stack(spk2_rec, dim=0)
 		spk_stack = torch.sum(spk2_rec, dim=0)
 
-		spk_stack = F.softmax(spk_stack)
+		mem2_stack = torch.stack(mem2_rec, dim=0)
+		mem_stack, _ = torch.max(mem2_stack,dim=0)
 
-		return spk_stack
+
+		spk_stack = F.softmax(spk_stack,dim=1)
+		mem_stack = F.softmax(mem_stack,dim=1)
+		# print("mem_stack.size", mem_stack.size())
+		# input()
+
+		return mem_stack

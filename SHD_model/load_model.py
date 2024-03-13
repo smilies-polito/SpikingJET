@@ -12,7 +12,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-model_path = '/home/ldapusers/gogebakan/snn_fault_injection/SHD_model/TrainedParameters/state_dict_shd_prova.th'
+model_path = '/home/ldapusers/gogebakan/snn_fault_injection/SHD_model/TrainedParameters/model_train.th'
+# model_path = "/home/ldapusers/gogebakan/snn_fault_injection/ANNFI_modified/models/pretrained_models/SHD.th"
 batch_size		= 256
 data_dir		= "./data/shd"
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
@@ -42,12 +43,14 @@ print(net)
 
 net.eval()  
 correct = 0
-total = 0
+count = 0
 loss_test_val = 0
 for i, (data, targets) in enumerate(iter(test_loader)):
     data = data[:, :, 0, :]
+    # print("data.shape", data.shape)
+    # input()
     data = data.to(device)
-    # print('data.shape()', data.shape)
+    # # print('data.shape()', data.shape)
     targets = targets.to(device)
     # print('targets.shape()', targets.shape)
 
@@ -56,11 +59,17 @@ for i, (data, targets) in enumerate(iter(test_loader)):
     # loss_test_val += loss_fn(spk_rec, targets)
     
     # correct += SF.accuracy_rate(spk_rec, targets) * spk_rec.size(1)
-    _,idx = spk_rec.max(1)
+    idx = torch.argmax(spk_rec, dim=1)
+
+    correct_bool = torch.eq(targets, idx)
+    correct_score = torch.mean(correct_bool.float())
     # print("idx", idx.size())
+    
     # print("targets", targets.size())
-    correct += np.mean((targets == idx).detach().cpu().numpy())
-    total += spk_rec.size(1)
+    correct += correct_score.item()
+    count += 1
+    # print("correct_score.item()", correct_score.item())
+    # print("spk_rec.size(1)", spk_rec.size(1))
+    # input()
 
-
-print(f"Test Accuracy: {(correct/total) * 100:.2f}%\n")
+print(f"Test Accuracy: {(correct/count) * 100:.2f}%\n")

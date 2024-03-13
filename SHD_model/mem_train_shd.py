@@ -10,6 +10,7 @@ from snntorch import surrogate
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device: ", device)
@@ -32,12 +33,12 @@ class Net(nn.Module):
 		self.num_outputs = 20
 		self.time_step = 0.001
 
-		self.alpha1 = torch.zeros(self.num_hidden)*(np.exp(-self.time_step/self.tau_syn))
-		self.beta1 = torch.zeros(self.num_hidden)*(np.exp(-self.time_step/self.tau_mem))
+		self.alpha1 = torch.ones(self.num_hidden)*(np.exp(-self.time_step/self.tau_syn))
+		self.beta1 = torch.ones(self.num_hidden)*(np.exp(-self.time_step/self.tau_mem))
 		self.threshold1 = torch.ones(self.num_hidden)
 
-		self.alpha2 = torch.zeros(self.num_outputs)*(np.exp(-self.time_step/self.tau_syn))
-		self.beta2 = torch.zeros(self.num_outputs)*(np.exp(-self.time_step/self.tau_mem))
+		self.alpha2 = torch.ones(self.num_outputs)*(np.exp(-self.time_step/self.tau_syn))
+		self.beta2 = torch.ones(self.num_outputs)*(np.exp(-self.time_step/self.tau_mem))
 		self.threshold2 = torch.ones(self.num_outputs)
 
 		# Fast sigmoid surrogate gradient
@@ -49,13 +50,13 @@ class Net(nn.Module):
 		self.fb1 = nn.Linear(self.num_hidden, self.num_hidden)
 
 		self.lif1 = snn.Synaptic(alpha=self.alpha1, beta=self.beta1, threshold=self.threshold1,
-						   learn_alpha=True, learn_beta=True, learn_threshold=True,
+						   learn_alpha=False, learn_beta=False, learn_threshold=False,
 						   spike_grad = self.spike_grad)
 
 		self.fc2 = nn.Linear(self.num_hidden, self.num_outputs)
 
 		self.lif2 = snn.Synaptic(alpha=self.alpha2, beta=self.beta2, threshold=self.threshold2,
-						   	learn_alpha=True, learn_beta=True, learn_threshold=True,
+						   	learn_alpha=False, learn_beta=False, learn_threshold=False,
 							spike_grad = self.spike_grad)
 
 	def forward(self, input_spikes):
@@ -84,7 +85,7 @@ class Net(nn.Module):
 		return torch.stack(spk2_rec, dim=0), torch.stack(mem2_rec, dim=0)
 
 
-def print_batch_accuracy(net, data, batch_size, num_steps, targets, train=False):
+def print_batch_accuracy(net, data, targets, train=False):
 
 	spk_rec, mem_rec= net(data[:, :, 0, :])
 	# print("spk_rec.size()", spk_rec.size())
@@ -100,9 +101,10 @@ def print_batch_accuracy(net, data, batch_size, num_steps, targets, train=False)
 		print(f"Train set accuracy for a single minibatch: {acc*100:.2f}%")
 	else:
 		print(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
+	return acc
 
 
-def train_printer(net, batch_size, num_steps, epoch, iter_counter, loss_hist,
+def train_printer(net,epoch, iter_counter, loss_hist,
 		test_loss_hist, counter, data, targets, test_data,
 		test_targets):
 
@@ -112,15 +114,15 @@ def train_printer(net, batch_size, num_steps, epoch, iter_counter, loss_hist,
 
 	print(f"Test Set Loss: {test_loss_hist[counter]:.2f}")
 
-	print_batch_accuracy(net, data, batch_size, num_steps, targets, train=True)
+	train_acc = print_batch_accuracy(net, data, targets, train=True)
 
-	print_batch_accuracy(net, test_data, batch_size, num_steps, test_targets, 
-			train=False)
+	test_acc = print_batch_accuracy(net, test_data, test_targets, train=False)
 
 	print("\n")
+	return train_acc, test_acc
 
 
-n_epochs		= 20
+n_epochs		= 150
 n_steps			= 100
 
 batch_size		= 256
@@ -134,7 +136,7 @@ trained_param_dir	= "./TrainedParameters"
 if not os.path.exists(trained_param_dir):
 	os.makedirs(trained_param_dir)
 
-trained_param_dict	= trained_param_dir + "/state_dict_shd_prova.th"
+trained_param_dict	= trained_param_dir + "/state_dict_shd_advanced.th"
 
 # Optimizer
 adam_beta1		= 0.9
@@ -173,6 +175,9 @@ optimizer = torch.optim.Adam(net.parameters(), lr = lr, betas = (adam_beta1,
 
 loss_hist = []
 test_loss_hist = []
+train_acc_hist = []
+test_acc_hist = []
+iter_hist = []
 counter = 0
 
 net.to(device)
@@ -229,15 +234,29 @@ for epoch in range(n_epochs):
 			test_loss_hist.append(test_loss.item())
 
 			# Print train/test loss/accuracy
-			if counter % 50 == 0 and counter > 0:
-				train_printer(net, batch_size, n_steps, epoch,
+			if counter % 20 == 0 and counter > 0:
+				train_acc, test_acc = train_printer(net, epoch,
 						iter_counter, loss_hist,
 						test_loss_hist, counter, inputs,
 						y, test_inputs,
 						test_y)
-
+				train_acc_hist.append(train_acc)
+				test_acc_hist.append(test_acc)
+				iter_hist.append(counter)
 			counter += 1
 			iter_counter +=1
 
 # Save parameters for inference
 torch.save(net.state_dict(), trained_param_dict)
+
+plt.plot(iter_hist, train_acc_hist)
+plt.plot(iter_hist, test_acc_hist)
+
+plt.xlabel("iteration")
+plt.ylabel("Accuracy")
+plt.legend()
+
+plt.savefig("Accuracy_plot.png")
+
+
+
