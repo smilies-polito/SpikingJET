@@ -28,19 +28,19 @@ def SDC_interval(faulty_batch, clean_batch):
 
     SDC_1_score = 1 - torch.mean(same_ind.float())
     
-    SDC_5per_bool = same_ind & less_5 & torch.logical_not(same_label)
-    SDC_5per_score = torch.mean(SDC_5per_bool.float())
+    SDC_0_5_bool = same_ind & less_5 & torch.logical_not(same_label)
+    SDC_0_5_score = torch.mean(SDC_0_5_bool.float())
 
-    SDC_10per_bool = same_ind & less_10 & more_5
-    SDC_10per_score = torch.mean(SDC_10per_bool.float())
+    SDC_5_10_bool = same_ind & less_10 & more_5
+    SDC_5_10_score = torch.mean(SDC_5_10_bool.float())
 
-    SDC_20per_bool = same_ind & less_20 & more_10
-    SDC_20per_score = torch.mean(SDC_20per_bool.float())
+    SDC_10_20_bool = same_ind & less_20 & more_10
+    SDC_10_20_score = torch.mean(SDC_10_20_bool.float())
 
-    masked_bool = same_ind & more_20
-    masked_score = torch.mean(masked_bool.float())
+    SDC_20_bool = same_ind & more_20
+    SDC_20_score = torch.mean(SDC_20_bool.float())
 
-    return fully_masked_score.item(), SDC_1_score.item(), SDC_5per_score.item(), SDC_10per_score.item(), SDC_20per_score.item(), masked_score.item()
+    return fully_masked_score.item(), SDC_1_score.item(), SDC_0_5_score.item(), SDC_5_10_score.item(), SDC_10_20_score.item(), SDC_20_score.item()
 
 def SDC(faulty_batch, clean_batch):
     # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
@@ -78,6 +78,15 @@ def SDC(faulty_batch, clean_batch):
 
     return fully_masked_score.item(), SDC_1_score.item(), SDC_5per_score.item(), SDC_10per_score.item(), SDC_20per_score.item(), masked_score.item()
 
+def faulty_vs_ground(faulty_batch, labels):
+
+    _, faulty_index = torch.max(faulty_batch, dim=1)
+    same_ind = torch.eq(faulty_index,labels)
+    acc = torch.mean(same_ind.float())
+
+    return acc.item()
+
+
 
 def get_faultID_per_layer(csv_path):
     
@@ -104,7 +113,7 @@ parser.add_argument('--network-name', '-n', type=str,
                     required=True,
                     help='Target network',
                     choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                'DenseNet121', 'CSNN', 'NMNIST'])
+                                'DenseNet121', 'CSNN', 'NMNIST','SHD'])
 
 parsed_args = parser.parse_args()
 
@@ -121,6 +130,7 @@ ID_dict, df_fault = get_faultID_per_layer('/' + model_name + '/' + fault_list_na
 PATH = os.getcwd()
 faulty_path_prefix = PATH + '/output/' + model_name + '/pt/faulty/batch_size_' + str(batch_size)
 clean_path_prefix = PATH + '/output/' + model_name + '/pt/clean/batch_size_' + str(batch_size)
+label_path_prefix = PATH + '/output/' + model_name + '/pt/label/batch_size_' + str(batch_size)
 
 sdc_1_dict = {}
 fully_masked_dict = {}
@@ -133,7 +143,9 @@ for layer in ID_dict.keys():
     tot_SDCper_0_5 = 0
     tot_SDCper_5_10 = 0
     tot_SDCper_10_20 = 0
-    tot_masked = 0
+    tot_SDCper_20 = 0
+    tot_facc = 0
+    tot_acc = 0
 
     print(str(len(ID_dict[layer])) + ' fault injected into ' + layer)
 
@@ -149,12 +161,18 @@ for layer in ID_dict.keys():
 
             clean_path = clean_path_prefix + '/batch_'+str(batch_id)+'.pt'
             faulty_path = faulty_path_prefix + '/' +batch_path
+            label_path = label_path_prefix + '/batch_' + str(batch_id)+'.pt'
 
             clean = torch.load(clean_path)
             faulty = torch.load(faulty_path)
+            label = torch.load(label_path)
         
-            # fully_masked,SDC_1_score,SDCper_0_5,SDCper_5_10,SDCper_10_20,masked = SDC_interval(faulty, clean)
-            fully_masked,SDC_1_score,SDCper_0_5,SDCper_5_10,SDCper_10_20,masked = SDC(faulty, clean)
+            fully_masked,SDC_1_score,SDCper_0_5,SDCper_5_10,SDCper_10_20,SDCper_20 = SDC_interval(faulty, clean)
+            # fully_masked,SDC_1_score,SDCper_0_5,SDCper_5_10,SDCper_10_20,SDCper_10_20 = SDC(faulty, clean)
+            facc = faulty_vs_ground(faulty,label)
+
+            acc = faulty_vs_ground(clean,label)
+
 
             count +=1
             tot_fully_masked += fully_masked
@@ -162,7 +180,9 @@ for layer in ID_dict.keys():
             tot_SDCper_0_5 += SDCper_0_5
             tot_SDCper_5_10 += SDCper_5_10
             tot_SDCper_10_20 += SDCper_10_20
-            tot_masked += masked
+            tot_SDCper_20 += SDCper_20
+            tot_facc += facc
+            tot_acc += acc
 
             if count % 10000 == 0:
                 check1 = tot_SDC_1_score/count
@@ -181,13 +201,13 @@ for layer in ID_dict.keys():
 
     sdc_1_dict[layer] = tot_SDC_1_score/count
     fully_masked_dict[layer] = tot_fully_masked/count
-    score[layer] = int(len(ID_dict[layer])),int(count), tot_fully_masked/count, tot_SDC_1_score/count, tot_SDCper_0_5/count, tot_SDCper_5_10/count, tot_SDCper_10_20/count, tot_masked/count
+    score[layer] = int(len(ID_dict[layer])),int(count), tot_fully_masked/count, tot_SDC_1_score/count, tot_SDCper_0_5/count, tot_SDCper_5_10/count, tot_SDCper_10_20/count, tot_SDCper_20/count, tot_facc/count, tot_acc/count
     print(sdc_1_dict)
     print(fully_masked_dict)
     print('\n')
     print('\n')
 
-df_score = pd.DataFrame(data=score, index=['# of faults','# of injections','fully_masked','SDC_1', 'SDC_5%', 'SDC_10%', 'SDC_20%', 'masked'])
+df_score = pd.DataFrame(data=score, index=['# of faults','# of injections','fully_masked','SDC_1', 'SDC_0_5%', 'SDC_5_10%', 'SDC_10_20%', 'SDC_20','facc', 'acc'])
 print(df_score)
 
 PATH = os.getcwd()

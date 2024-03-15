@@ -25,7 +25,7 @@ class FaultListGenerator:
                  network: Module,
                  network_name: str,
                  device: torch.device,
-                 module_classes: Type[Module] = (Conv2d, snn.Leaky, Linear)): # 
+                 module_classes: Type[Module] = (Conv2d, snn.Leaky, Linear, snn.Synaptic)): # 
 
         self.network = network
         self.network_name = network_name
