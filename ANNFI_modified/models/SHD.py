@@ -27,12 +27,12 @@ class SHD(nn.Module):
 		self.num_outputs = 20
 		self.time_step = 0.001
 
-		self.alpha1 = torch.zeros(self.num_hidden)*(np.exp(-self.time_step/self.tau_syn))
-		self.beta1 = torch.zeros(self.num_hidden)*(np.exp(-self.time_step/self.tau_mem))
+		self.alpha1 = torch.ones(self.num_hidden)*(np.exp(-self.time_step/self.tau_syn))
+		self.beta1 = torch.ones(self.num_hidden)*(np.exp(-self.time_step/self.tau_mem))
 		self.threshold1 = torch.ones(self.num_hidden)
 
-		self.alpha2 = torch.zeros(self.num_outputs)*(np.exp(-self.time_step/self.tau_syn))
-		self.beta2 = torch.zeros(self.num_outputs)*(np.exp(-self.time_step/self.tau_mem))
+		self.alpha2 = torch.ones(self.num_outputs)*(np.exp(-self.time_step/self.tau_syn))
+		self.beta2 = torch.ones(self.num_outputs)*(np.exp(-self.time_step/self.tau_mem))
 		self.threshold2 = torch.ones(self.num_outputs)
 
 		# Fast sigmoid surrogate gradient
