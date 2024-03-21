@@ -127,6 +127,8 @@ class FaultListGenerator:
 
                 exhaustive_fault_list = exhaustive_fault_list + list(
                     itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits]))
+                print(layer_name)
+                print(len(list(  itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits])))  )  
 
             random_generator = np.random.default_rng(seed=seed)
             n = self.__compute_date_n(N=len(exhaustive_fault_list),
