@@ -91,7 +91,7 @@ class FaultListGenerator:
             size_no_batch = size[1:] #removing the batch correlated dimension
             self.net_layer_shape[layer+".spike"] = size_no_batch    
 
-        print(self.net_layer_shape)
+        # print(self.net_layer_shape)
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
@@ -128,8 +128,7 @@ class FaultListGenerator:
                 exhaustive_fault_list = exhaustive_fault_list + list(
                     itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits]))
                 print(layer_name)
-                print(len(list(  itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits])))  )  
-
+                print(len(list(itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits]))))
             random_generator = np.random.default_rng(seed=seed)
             n = self.__compute_date_n(N=len(exhaustive_fault_list),
                                       p=p,

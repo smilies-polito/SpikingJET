@@ -61,8 +61,7 @@ def main(args):
     # Generate fault list
     fault_list = fault_manager.get_fault_list(load_fault_list=False,
                                                      save_fault_list=True,
-                                                     FaultInjectionManager = fault_injection_executor,
-                                                     seed=3)
+                                                     FaultInjectionManager = fault_injection_executor)
 
     #This function runs fault injections
     fault_injection_executor.run_faulty_campaign(fault_list=fault_list)
