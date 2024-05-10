@@ -45,6 +45,30 @@ By default, results are saved in ```.pt``` files in the ```output/network_name/p
 **Note**: The progress bar shows the percentage of predictions that have chagned as a result of a fault. THIS IS NOT A MEASURE OF ACCURACY LOSS, even if it is related. The behaivour can be changed to check differences in vector score rather than in predicitons.
 
 
+# Use a different Neural Network model
+
+To use a new custom Neural Network First insert the file with the class of the new NN model inside the folder ```models/```, then instrument the code:
+1. Add the FaultInjector parameter in the __init__ function of the model class  ```self.FaultInjector = None```
+2. Instrument the forward function, calling the injection function, after each spiking layer, as shown in the code below, call the function ``` self.FaultInjector.injection(mem1, spk1, 'lif1', curr_step) ```. This function takes as parameters, the __membrane potential array__, the __spikes array__, the __name of the layer__ and the __current step__.
+
+   ```
+   curr_step = 0
+   for step in range(x.shape[0]):
+   
+      cur1 = self.fc1(x[step])
+      spk1, mem1 = self.lif1(cur1, mem1)
+      self.FaultInjector.injection(mem1, spk1, 'lif1', curr_step)
+
+      cur2 = self.fc2(spk1)
+      spk2, mem2 = self.lif2(cur2, mem2)
+      self.FaultInjector.injection(mem2, spk2,'lif2', curr_step)
+
+      spk2_rec.append(spk2)
+      curr_step += 1
+
+
+   ```
+
 # Analyse
 
 After injection fault, results can be analysed by using analyse.py script. The purpose of this analyse is see the SDC scores of the network.
@@ -81,6 +105,13 @@ Results are saved in the ```output/network_name/csv``` folder. Notice that carry
 
 
 # Reference
+
+@article{gogebakan2024spikingjet,
+  title={SpikingJET: Enhancing Fault Injection for Fully and Convolutional Spiking Neural Networks},
+  author={Gogebakan, Anil Bayram and Magliano, Enrico and Carpegna, Alessio and Ruospo, Annachiara and Savino, Alessandro and Di Carlo, Stefano},
+  journal={arXiv preprint arXiv:2404.00383},
+  year={2024}
+}
 
 @INPROCEEDINGS{10136998,
   author={Ruospo, A. and Gavarini, G. and de Sio, C. and Guerrero, J. and Sterpone, L. and Reorda, M. Sonza and Sanchez, E. and Mariani, R. and Aribido, J. and Athavale, J.},
