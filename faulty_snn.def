@@ -1,0 +1,31 @@
+Bootstrap: library
+From: ubuntu:22.04
+
+%post
+	apt update
+	apt install -y git
+	apt install -y pip
+	apt install -y vim
+	apt install -y python3
+
+    pip install torch==1.13.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
+	pip install torchaudio==0.13.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
+	pip install torchvision==0.14.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
+    pip install snntorch
+	pip install h5py
+	pip install seaborn
+	pip install certifi==2022.9.24
+	pip install charset-normalizer==2.1.1
+	pip install idna==3.4
+	pip install numpy==1.23.5
+	pip install Pillow==9.3.0
+	pip install requests==2.28.1
+	pip install tqdm==4.64.1
+	pip install typing-extensions==4.4.0
+	pip install urllib3==1.26.13
+	pip install matplotlib
+	pip install scipy
+	pip install torch-summary
+    pip install tonic
+	pip install panda
+
