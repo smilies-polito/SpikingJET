@@ -1,4 +1,4 @@
-# SNN_fault_injection
+# SpikingJet: SNN fault injection
 
 In order to run scripts on the server, you should create singularity container for the first time:
 
