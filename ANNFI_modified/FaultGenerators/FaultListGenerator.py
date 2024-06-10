@@ -24,17 +24,27 @@ class FaultListGenerator:
     def __init__(self,
                  network: Module,
                  network_name: str,
+                 layer_number: int,
                  device: torch.device,
                  module_classes: Type[Module] = (Conv2d, snn.Leaky, Linear, snn.Synaptic)): # 
 
         self.network = network
         self.network_name = network_name
-
+        self.layer_number = layer_number
+        
         self.device = device
 
         # Name of the injectable layers
         injectable_layer_names = [name.split('.')[0] for name, module in self.network.named_modules()
                                   if isinstance(module, module_classes)]
+        
+        if self.layer_number is -1:
+            self.layer_target = None
+        elif self.layer_number > -1 and self.layer_number < len(injectable_layer_names):   
+            self.layer_target = injectable_layer_names[self.layer_number]
+        else:
+            print(" --- attention please -layer parameter not valid by default set to -1")
+            self.layer_target = None     
 
         # List of the shape of all the layers that contain weight
         self.net_layer_shape = {name: param.shape for name, param in self.network.named_parameters()
@@ -45,7 +55,7 @@ class FaultListGenerator:
         self.net_layer_params = {name: param for name, param in self.network.named_parameters()
                                  if name.split('.')[0] in injectable_layer_names}
         #print(self.net_layer_params)
-            
+             
         #print(self.network.state_dict())    
     @staticmethod
     def __compute_date_n(N: int,
@@ -91,7 +101,15 @@ class FaultListGenerator:
             size_no_batch = size[1:] #removing the batch correlated dimension
             self.net_layer_shape[layer+".spike"] = size_no_batch    
 
-        # print(self.net_layer_shape)
+        print(self.net_layer_shape)
+
+        #filtering the net_layer_shape based on the target layer
+        if self.layer_target is not None:
+            for key in list(self.net_layer_shape.keys()):
+                if key.split(".")[0] is not self.layer_target:
+                    del self.net_layer_shape[key]
+
+
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
