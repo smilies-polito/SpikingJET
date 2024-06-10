@@ -59,7 +59,7 @@ def main(args):
 
     
     # Generate fault list
-    fault_list = fault_manager.get_fault_list(load_fault_list=False,
+    fault_list = fault_manager.get_fault_list(load_fault_list=True,
                                                      save_fault_list=True,
                                                      FaultInjectionManager = fault_injection_executor)
 
@@ -67,5 +67,5 @@ def main(args):
     fault_injection_executor.run_faulty_campaign(fault_list=fault_list)
     
 
-if __name__ == '__main__':
+if __name__ == '__main__': 
     main(args=parse_args())

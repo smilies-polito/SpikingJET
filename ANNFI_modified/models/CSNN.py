@@ -67,7 +67,7 @@ class CSNN(nn.Module):
           cur3 = self.fc1(spk2.flatten(1)) # batch x ....
           spk3, mem_lif3 = self.lif3(cur3, mem_lif3)
           self.FaultInjector.injection(mem_lif3, spk3, 'lif3', curr_step)
-          
+          print(mem_lif3[5])
           spk_rec.append(spk3)
           curr_step+=1
 

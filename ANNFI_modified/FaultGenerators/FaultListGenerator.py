@@ -65,7 +65,7 @@ class FaultListGenerator:
     def get_fault_list(self,
                                 load_fault_list=False,
                                 save_fault_list=True,
-                                seed=51196,
+                                seed=1,
                                 p=0.5,
                                 e=0.01,
                                 t=2.58,
@@ -95,7 +95,7 @@ class FaultListGenerator:
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
-
+        print(fault_list_filename)
         try:
             if load_fault_list:
                 with open(f'{fault_list_filename}/{seed}_fault_list.csv', newline='') as f_list:

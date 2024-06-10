@@ -67,6 +67,8 @@ class Net(nn.Module):
 
 
 
+print("Training startone")
+
 # CIFER-10 Dataset are 3*32*32 (three channel colors)
 
 # dataloader arguments
@@ -91,7 +93,7 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 
 # Define the Network Architecture
 # Network Architecture
-num_inputs = 32*32
+num_inputs = 32*32*3
 num_hidden = 1000
 num_outputs = 10
 
