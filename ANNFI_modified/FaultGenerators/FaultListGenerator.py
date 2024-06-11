@@ -25,12 +25,14 @@ class FaultListGenerator:
                  network: Module,
                  network_name: str,
                  layer_number: int,
+                 param_number: int,
                  device: torch.device,
                  module_classes: Type[Module] = (Conv2d, snn.Leaky, Linear, snn.Synaptic)): # 
 
         self.network = network
         self.network_name = network_name
         self.layer_number = layer_number
+        self.param_number = param_number
         
         self.device = device
 
@@ -101,19 +103,27 @@ class FaultListGenerator:
             size_no_batch = size[1:] #removing the batch correlated dimension
             self.net_layer_shape[layer+".spike"] = size_no_batch    
 
-        print(self.net_layer_shape)
+        
 
         #filtering the net_layer_shape based on the target layer
         if self.layer_target is not None:
             for key in list(self.net_layer_shape.keys()):
-                if key.split(".")[0] is not self.layer_target:
+                if key.split(".")[0] != self.layer_target:
+                    print(key.split(".")[0])
                     del self.net_layer_shape[key]
 
+            #filtering the net_layer_shape based on the target param, if a layer is selected
+            if self.param_number > -1 and self.param_number < len(self.net_layer_shape):
+                for index, key in enumerate(list(self.net_layer_shape.keys())):
+                    if index != self.param_number:
+                        del self.net_layer_shape[key]     
 
+        print(self.net_layer_shape)
 
         cwd = os.getcwd()
         fault_list_filename = f'{cwd}/output/fault_list/{self.network_name}'
         print(fault_list_filename)
+        print(load_fault_list)
         try:
             if load_fault_list:
                 with open(f'{fault_list_filename}/{seed}_fault_list.csv', newline='') as f_list:
@@ -145,8 +155,8 @@ class FaultListGenerator:
 
                 exhaustive_fault_list = exhaustive_fault_list + list(
                     itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits]))
-                print(layer_name)
-                print(len(list(itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits]))))
+                #print(layer_name)
+                #print(len(list(itertools.product(*[[layer_name], k, dim1, dim2, dim3, bits]))))
             random_generator = np.random.default_rng(seed=seed)
             n = self.__compute_date_n(N=len(exhaustive_fault_list),
                                       p=p,

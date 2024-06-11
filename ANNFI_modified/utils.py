@@ -40,7 +40,9 @@ def parse_args():
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
                                  'DenseNet121', 'CSNN', 'NMNIST', 'SHD'])
     parser.add_argument('--layer', '-l', type=int, default=-1, 
-                        help='Select the layer target of the injection campaign, if -1 perform the injection over the whole network.' )                             
+                        help='Select the layer target of the injection campaign, if -1 perform the injection over the whole network.' )     
+    parser.add_argument('--param', '-p', type=int, default=-1,
+                        help='Select the parameter target of the injection campaign, if -1, perform the injection over the whole layer, works only with the layer parameter')                                            
 
     parsed_args = parser.parse_args()
 

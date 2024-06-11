@@ -53,6 +53,7 @@ def main(args):
     fault_manager = FaultListGenerator(network=network,
                                        network_name=args.network_name,
                                        layer_number=args.layer,
+                                       param_number=args.param,
                                        device=device)  #Please do not set load_fault_list=True, otherwise the per layer injection does not work
 
     #This function runs clean inferences on the golden dataset
@@ -60,7 +61,7 @@ def main(args):
 
     
     # Generate fault list
-    fault_list = fault_manager.get_fault_list(load_fault_list=True,
+    fault_list = fault_manager.get_fault_list(load_fault_list=False,#Please do not set load_fault_list=True, otherwise the per layer injection does not work
                                                      save_fault_list=True,
                                                      FaultInjectionManager = fault_injection_executor)
 
