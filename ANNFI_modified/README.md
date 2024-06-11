@@ -38,7 +38,25 @@ A fault injection can be executed with the following programm:
 
 **_NOTE:_** For SNN layers, learn_beta and learn_threshold values must be "True" in order to access it even though it isn't updated during the training.  
 
+### Flags
+
+To set the dataset use the flag ```--network-name``` or ```-n``` and the name of the dataset.
+
+To set the batch size use the flag ```--batch-size``` or ```-b``` and size: 16, 32, 64.
+
+To set the Dataset use the flag ```--network-name``` or ```-n``` and the name of the dataset.
+
+To set the target layer of the FI use the flag ```--layer``` or ```-l``` and the progressive number of the layer in the neural network, set to -1 to inject in the entire network.
+
+To set the target parameter insede the layer of the FI use the flag ```--param``` or ```-p``` and the number of the parameter:
+- Convolutional layer: 0 for weights, 1 for bias
+- lif layer: 0 for threshold, 1 for beta, 2 for potential, 3 for spike.
+
+Set to -1 to inject in all the parameters of the layer.
+
 It is possible to execute inferences with available GPUs sepcifing the argument ```--use-cuda```.
+
+
 
 By default, results are saved in ```.pt``` files in the ```output/network_name/pt``` folder. For a faulty run, a single file contains the result of a specific fault in a specific batch. The fault lists can be found in the ```output/fault_list``` folder. Please note that, as of now, it is possible to inject only a fault list at a time: changing the fault list and launching a fault injection campaign for the same network will overwrite previous results.
 
