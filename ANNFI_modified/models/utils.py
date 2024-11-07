@@ -9,7 +9,10 @@ from torchvision.datasets import CIFAR10, ImageNet
 
 import tonic
 import tonic.transforms as transforms
+from types import SimpleNamespace
+from models.dataset import DVS_Lip
 
+from torch.utils.data import DataLoader
 
 
 def load_ImageNet_validation_set(batch_size,
@@ -172,7 +175,41 @@ def load_SHD_test_dataset(batch_size):
 
     test_loader 	= torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, drop_last=True)
     return test_loader
+def dataset2dataloader(dataset, batch_size, num_workers, shuffle=True):
+    print("bs " + str(batch_size))
+    print("nw " + str(num_workers))
+    loader =  DataLoader(dataset,
+                         batch_size = batch_size,
+                         num_workers = num_workers,
+                         shuffle = shuffle,
+                         drop_last = False,
+                         pin_memory=True)
+    return loader
 
+def load_DVS_Lip_test_dataset(batch_size):
+    args = SimpleNamespace(**{
+        'gpus': '0',
+        'lr': 0.0003,
+        'batch_size': 32,
+        'n_class': 100,
+        'seq_len': 30,
+        'num_workers': 12,
+        'max_epoch': 80,
+        'num_bins': [1, 7],
+        'test': True,
+        'log_dir': None,
+        'weights': 'mstp',
+        'event_root': './data/DVS-Lip',
+        'se': False,
+        'base_channel': 64,
+        'alpha': 4,
+        'beta': 7,
+        't2s_mul': 2
+    })  
+    dataset = DVS_Lip('test', args)
+    print(f'Start Testing, Data Length: {len(dataset)}')
+    loader = dataset2dataloader(dataset, args.batch_size, args.num_workers, shuffle=False)
+    return loader
 
 def load_from_dict(network, device, path, function=None):
     if '.th' in path:

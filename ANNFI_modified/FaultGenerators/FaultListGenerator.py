@@ -56,9 +56,9 @@ class FaultListGenerator:
         # List of the injectable params
         self.net_layer_params = {name: param for name, param in self.network.named_parameters()
                                  if name.split('.')[0] in injectable_layer_names}
-        #print(self.net_layer_params)
+        print(self.net_layer_params)
              
-        #print(self.network.state_dict())    
+        print(self.network.state_dict())    
     @staticmethod
     def __compute_date_n(N: int,
                          p: float = 0.5,

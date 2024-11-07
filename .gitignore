@@ -12,3 +12,4 @@ __pycache__
 *.tar.gz
 weights
 data
+event-based-lip-reading/

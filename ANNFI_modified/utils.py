@@ -7,6 +7,7 @@ from models.utils import load_from_dict
 from models.CSNN import CSNN
 from models.NMNIST import NMNIST
 from models.SHD import SHD
+from models.DVS_Lip import MSTP
 from models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110, resnet1202
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, densenet121, DenseNet121_Weights
 import matplotlib.pyplot as plt
@@ -14,10 +15,22 @@ import numpy as np
 import torchvision.models as models
 from scipy.stats import norm
 from matplotlib.offsetbox import AnchoredText
+from types import SimpleNamespace
+
 
 class UnknownNetworkException(Exception):
     pass
 
+def load_missing(model, pretrained_dict):
+    model_dict = model.state_dict()
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict.keys() and v.size() == model_dict[k].size()}
+    missed_params = [k for k, v in model_dict.items() if not k in pretrained_dict.keys()]
+
+    print('loaded params/tot params:{}/{}'.format(len(pretrained_dict),len(model_dict)))
+    print('miss matched params:',missed_params)
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
+    return model
 
 def parse_args():
     """
@@ -38,7 +51,7 @@ def parse_args():
                         required=True,
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD'])
+                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD', 'DVS-Lip'])
     parser.add_argument('--layer', '-l', type=int, default=-1, 
                         help='Select the layer target of the injection campaign, if -1 perform the injection over the whole network.' )     
     parser.add_argument('--param', '-p', type=int, default=-1,
@@ -103,7 +116,7 @@ def load_network(network_name: str,
                        device=device,
                        path=network_path)
     elif 'NMNIST' in network_name:
-        network = NMNIST()
+        network = NMNIST
         
         # Load the weights
         network_path =  f'models/pretrained_models/{network_name}.th'
@@ -120,7 +133,34 @@ def load_network(network_name: str,
         load_from_dict(network=network,
         device=device,
         path=network_path)
-
+    elif 'DVS-Lip' in network_name:
+        args = SimpleNamespace(**{
+            'gpus': '0',
+            'lr': 0.0003,
+            'batch_size': 32,
+            'n_class': 100,
+            'seq_len': 30,
+            'num_workers': 12,
+            'max_epoch': 80,
+            'num_bins': [1, 7],
+            'test': True,
+            'log_dir': None,
+            'weights': 'mstp',
+            'event_root': './data/DVS-Lip',
+            'se': False,
+            'base_channel': 64,
+            'alpha': 4,
+            'beta': 7,
+            't2s_mul': 2
+        })  
+        network = MSTP(args).cuda()
+        #optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=1e-4)
+        #scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.max_epoch, eta_min=5e-6)
+        print("Network Arch: ")
+        print(network)
+        network_path =  f'models/pretrained_models/{network_name}.pth'
+        weight = torch.load(network_path, map_location=torch.device('cpu'))
+        load_missing(network, weight)
     else:
         raise UnknownNetworkException(f'ERROR: unknown network: {network_name}')
 
