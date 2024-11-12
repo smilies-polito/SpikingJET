@@ -36,6 +36,8 @@ def main(args):
         loader = load_NMNIST_test_dataset(batch_size=args.batch_size)
     elif 'SHD' in args.network_name:
         loader = load_SHD_test_dataset(batch_size=args.batch_size)
+    elif 'snn-audiomnist':
+        loader = load_snn_audiomnist_dataset(batch_size=args.batch_size)    
     elif 'DVS-Lip' in args.network_name:
         loader = load_DVS_Lip_test_dataset(batch_size=args.batch_size)    
     else:

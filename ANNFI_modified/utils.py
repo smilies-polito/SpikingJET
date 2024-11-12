@@ -8,6 +8,7 @@ from models.CSNN import CSNN
 from models.NMNIST import NMNIST
 from models.SHD import SHD
 from models.DVS_Lip import MSTP
+from models.snn_audiomnist import SNN_AUDIOMNIST
 from models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110, resnet1202
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, densenet121, DenseNet121_Weights
 import matplotlib.pyplot as plt
@@ -51,7 +52,7 @@ def parse_args():
                         required=True,
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD', 'DVS-Lip'])
+                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD', 'DVS-Lip', 'snn_audiomnist'])
     parser.add_argument('--layer', '-l', type=int, default=-1, 
                         help='Select the layer target of the injection campaign, if -1 perform the injection over the whole network.' )     
     parser.add_argument('--param', '-p', type=int, default=-1,
@@ -126,6 +127,16 @@ def load_network(network_name: str,
                 path=network_path)
     elif 'SHD' in network_name:
         network = SHD(device)
+
+        #Load the weights
+        network_path = f'models/pretrained_models/{network_name}.th'
+
+        load_from_dict(network=network,
+        device=device,
+        path=network_path)
+
+    elif 'snn_audiomnist' in network_name:
+        network = SNN_AUDIOMNIST()
 
         #Load the weights
         network_path = f'models/pretrained_models/{network_name}.th'
