@@ -49,4 +49,4 @@ class SNN_AUDIOMNIST(nn.Module):
 			mem_out, out = self.readout(cur3, mem_out)
 			mem_out_rec.append(mem_out)
 			out_rec.append(out)
-		return torch.stack(mem_out_rec, dim=0)
+		return torch.stack(mem_out_rec, dim=0), torch.stack(out_rec, dim=0)

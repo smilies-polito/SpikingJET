@@ -52,7 +52,7 @@ def parse_args():
                         required=True,
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD', 'DVS-Lip', 'snn_audiomnist'])
+                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD', 'DVS-Lip', 'snn_audiomnist', 'csnn_audiomnist', 'cnn_audiomnist'])
     parser.add_argument('--layer', '-l', type=int, default=-1, 
                         help='Select the layer target of the injection campaign, if -1 perform the injection over the whole network.' )     
     parser.add_argument('--param', '-p', type=int, default=-1,
@@ -144,6 +144,25 @@ def load_network(network_name: str,
         load_from_dict(network=network,
         device=device,
         path=network_path)
+    elif 'csnn_audiomnist' in network_name:
+        network = CSNN_AUDIOMNIST()
+
+        #Load the weights
+        network_path = f'models/pretrained_models/{network_name}.th'
+
+        load_from_dict(network=network,
+        device=device,
+        path=network_path)
+    elif 'cnn_audiomnist' in network_name:
+        network = CNN_AUDIOMNIST()
+
+        #Load the weights
+        network_path = f'models/pretrained_models/{network_name}.th'
+
+        load_from_dict(network=network,
+        device=device,
+        path=network_path)        
+        
     elif 'DVS-Lip' in network_name:
         args = SimpleNamespace(**{
             'gpus': '0',

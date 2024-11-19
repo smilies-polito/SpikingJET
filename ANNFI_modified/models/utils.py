@@ -3,7 +3,7 @@ import os
 from tqdm import tqdm
 
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, Dataset
 from torchvision import transforms
 from torchvision.datasets import CIFAR10, ImageNet
 
@@ -11,6 +11,8 @@ import tonic
 import tonic.transforms as transforms
 from types import SimpleNamespace
 from models.dataset import DVS_Lip
+import matplotlib.pyplot as plt
+import time
 
 from torch.utils.data import DataLoader
 
@@ -177,34 +179,28 @@ def load_SHD_test_dataset(batch_size):
     return test_loader
 
 def load_audiomnist_dataset(batch_size):
-
-    import matplotlib.pyplot as plt
-	import time
-	start_time = time.time()
-	root_dir	= "./Data"
-	batch_size	= 128
-	sample_rate	= 48e3
-	fft_window	= 25e-3 
-	hop_length_s	= 10e-3 
-	n_mels		= 40
-	spiking_thresh 	= 0.9
-	transform = MelFilterbank(sample_rate = sample_rate, fft_window = fft_window, hop_length_s = hop_length_s,n_mels = n_mels,db = True,normalize = True,spikify = True,spiking_thresh	= spiking_thresh)
-	dataset = CustomDataset(root_dir = root_dir,transform = transform)
-	train_size 		= int(0.8 * len(dataset))
-	test_size		= len(dataset) - train_size
-	train_set, test_set = random_split(dataset, [train_size, test_size])
-	train_loader = DataLoader(train_set, 
- 		batch_size	= batch_size,
- 		shuffle		= True,
- 		num_workers	= 4,
- 		drop_last 	= True
- 	)
-	test_loader = DataLoader(test_set, 
- 		batch_size	= batch_size,
- 		shuffle		= True,
- 		num_workers	= 4,
- 		drop_last 	= True
- 	)
+    start_time = time.time()
+    root_dir = "./Data"
+    batch_size = 128
+    sample_rate = 48e3
+    fft_window = 25e-3
+    hop_length_s = 10e-3
+    n_mels = 40
+    spiking_thresh = 0.9
+    transform = MelFilterbank(sample_rate=sample_rate,
+                              fft_window=fft_window,
+                              hop_length_s=hop_length_s,
+                              n_mels=n_mels,
+                              db=True,
+                              normalize=True,
+                              spikify=True,
+                              spiking_thresh=spiking_thresh)
+    dataset = CustomDataset(root_dir=root_dir, transform=transform)
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train_set, test_set = random_split(dataset, [train_size, test_size])
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
     return test_loader
 
 
