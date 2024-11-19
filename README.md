@@ -37,20 +37,13 @@ After create it once you don't have recreate it everytime. Whenever you want to 
    python3 class_CSNN_DVSGesture.py
 ```
 
-## TODO
+##HOW TO ADD NEW NN:
+1) Add in models the file with the model with code instrumentation
+    -> Class name NN_DATASET + self.FaultInjector = None + injection in the forward
+    -> insert the pretreined weigth file.
+2) utils.py -> modify the parse_args 
+            -> modify the load_networks 
+3) main.py -> add switch option for the dataloader
 
+4) models/utils.py -> add the function fot the dataloader, one for every ds, used for more NN
 
-### Prior
- - [x] Run Fault injection with CSNN_DVSGesture
-    - [x] Create a singularity container that can be used for ANNFI and CSNN_DVSGesture models
-    - [x] Understand how to place our module to existing framework
-        - [x] Modify codes for data loader
-        - [x] Modify codes for model architecture (e.g. include interpolation on forward pass)
-    - [x] Check beta and membrane threshold values
-        - [x] Right now, there is one beta value for each layer. Modify it so that there is a beta value for each neuron.
-    - [x] Inject fault on membrane potentials.
-    - [x] Inject fault on beta values.
-
-
-### Secondary
- - [ ] Modify train scripts as they can be used with argument parser. The aim is to run the same script with different parameters at the same time in different containers or servers.
