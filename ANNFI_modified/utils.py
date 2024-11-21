@@ -139,7 +139,7 @@ def load_network(network_name: str,
         network = SNN_AUDIOMNIST()
 
         #Load the weights
-        network_path = f'models/pretrained_models/{network_name}.th'
+        network_path = f'models/pretrained_models/{network_name}.pt'
 
         load_from_dict(network=network,
         device=device,
@@ -148,7 +148,7 @@ def load_network(network_name: str,
         network = CSNN_AUDIOMNIST()
 
         #Load the weights
-        network_path = f'models/pretrained_models/{network_name}.th'
+        network_path = f'models/pretrained_models/{network_name}.pt'
 
         load_from_dict(network=network,
         device=device,
@@ -157,7 +157,7 @@ def load_network(network_name: str,
         network = CNN_AUDIOMNIST()
 
         #Load the weights
-        network_path = f'models/pretrained_models/{network_name}.th'
+        network_path = f'models/pretrained_models/{network_name}.pt'
 
         load_from_dict(network=network,
         device=device,

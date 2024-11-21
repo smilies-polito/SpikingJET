@@ -3,7 +3,8 @@ import os
 from tqdm import tqdm
 
 import torch
-from torch.utils.data import TensorDataset, Dataset
+import torchaudio
+from torch.utils.data import TensorDataset, Dataset, random_split, DataLoader
 from torchvision import transforms
 from torchvision.datasets import CIFAR10, ImageNet
 
@@ -14,6 +15,11 @@ from models.dataset import DVS_Lip
 import matplotlib.pyplot as plt
 import time
 
+import torch.nn as nn
+import torch.nn.functional as fn
+import snntorch as snn
+
+
 from torch.utils.data import DataLoader
 
 
@@ -23,6 +29,7 @@ def load_ImageNet_validation_set(batch_size,
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
+
 
     transform_validation = transforms.Compose([
         transforms.Resize(256),
@@ -180,8 +187,7 @@ def load_SHD_test_dataset(batch_size):
 
 def load_audiomnist_dataset(batch_size):
     start_time = time.time()
-    root_dir = "./Data"
-    batch_size = 128
+    root_dir = "./data/audiomnist"
     sample_rate = 48e3
     fft_window = 25e-3
     hop_length_s = 10e-3
@@ -279,10 +285,10 @@ class CustomDataset(Dataset):
 		self.max_length	= max_length
 
 		self.data = []
-
+       
 		# Loop over all the users' directories
 		for user_folder in os.listdir(root_dir):
-			#print("user_folder",user_folder)
+			print("user_folder",user_folder)
 			user_path = os.path.join(root_dir, user_folder)
 			#print("user_path",user_path)
 			if os.path.isdir(user_path):
@@ -357,8 +363,7 @@ class MelFilterbank:
 
 		if self.db:
 			# Convert the Mel Spectrogram to dB scale
-			self.db_transform = torchaudio.transforms.\
-						AmplitudeToDB()
+			self.db_transform = torchaudio.transforms.AmplitudeToDB()
 
 		self.normalize		= normalize
 		self.spikify		= spikify

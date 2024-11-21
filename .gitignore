@@ -13,3 +13,4 @@ __pycache__
 weights
 data
 event-based-lip-reading/
+event-based-lip-reading/data/DVS-Lip/test/
