@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import snntorch as snn
 
+from torch.nn import functional as F
+
 class Readout(snn.Leaky):
 
     def __init__(self, beta):
@@ -15,7 +17,6 @@ class Readout(snn.Leaky):
     def forward(self, cur, mem):
         _, mem = super().forward(cur, mem)
         return mem, fn.softmax(mem, dim=1)
-
 
 class SNN_AUDIOMNIST(nn.Module):
 	def __init__(self, num_inputs = 40, num_hidden = 150,num_outputs = 10, model = "lif", bias = False,beta = 0.9, threshold = 1.):
@@ -63,6 +64,17 @@ class SNN_AUDIOMNIST(nn.Module):
 
 			mem3_rec.append(mem3)
 			spk3_rec.append(spk3)
-		return torch.stack(mem3_rec, dim=0), \
-            torch.stack(spk3_rec, dim=0)
+		spk3_rec = torch.stack(spk3_rec, dim=0)
+		mem3_rec = torch.stack(mem3_rec, dim=0)
+		avg_mem = mem3_rec.mean(dim=0)
+		pro = torch.softmax(avg_mem,dim=-1)
+		
+		return pro
+		
+		''' This for working with standard flow	
+		spk3_rec = torch.stack(spk3_rec)	
+		res_vec = spk3_rec.sum(dim=0)
+		res_vec = F.softmax(res_vec)
+		return res_vec
+		'''
 

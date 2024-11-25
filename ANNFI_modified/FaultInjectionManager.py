@@ -85,7 +85,11 @@ class FaultInjectionManager:
   
                 data, label = batch
                 #print(len(label)) total of 10000 images
+                if 'snn_audiomnist' or 'csnn_audiomnist' or 'cnn_audiomnist':
+                  data 	= data.permute(1, 0, 2)
+
                 data = data.to(self.device)
+
 
                 # Run inference on the current batch
                 scores, indices = self.__run_inference_on_batch(data=data)
@@ -194,6 +198,9 @@ class FaultInjectionManager:
             # Cycle all the batches in the data loader
             for batch_id, batch in enumerate(self.loader):
                 data, _ = batch
+                if 'snn_audiomnist' or 'csnn_audiomnist' or 'cnn_audiomnist':
+                  data 	= data.permute(1, 0, 2)
+
                 data = data.to(self.device)
                 
                 # Inject all the faults in a single batch

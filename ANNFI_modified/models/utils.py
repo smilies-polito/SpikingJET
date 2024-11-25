@@ -186,7 +186,7 @@ def load_SHD_test_dataset(batch_size):
     return test_loader
 
 def load_audiomnist_dataset(batch_size):
-    start_time = time.time()
+   
     root_dir = "./data/audiomnist"
     sample_rate = 48e3
     fft_window = 25e-3
@@ -346,7 +346,7 @@ class CustomDataset(Dataset):
 
 		lens = torch.tensor([x.shape[0] for x in waveform])
 
-		return waveform, lens, label
+		return waveform, label   #return waveform, lens, label
 
 class MelFilterbank:
 
