@@ -84,16 +84,22 @@ class FaultInjectionManager:
                 #print(batch_id)
   
                 data, label = batch
+                print("label")
+                print(label)
                 #print(len(label)) total of 10000 images
-                if 'snn_audiomnist' or 'csnn_audiomnist' or 'cnn_audiomnist':
+                if 'snn_audiomnist' in self.network_name or 'csnn_audiomnist' in self.network_name or 'cnn_audiomnist' in self.network_name:
                   data 	= data.permute(1, 0, 2)
 
                 data = data.to(self.device)
 
-
                 # Run inference on the current batch
                 scores, indices = self.__run_inference_on_batch(data=data)
-
+                print("score")
+                print(scores)
+                print("indices")
+                print(indices)
+                print(f'{self.clean_output_dir}/batch_{batch_id}.pt')
+                print(f'{self.label_output_dir}/batch_{batch_id}.pt')
                 # Save the output
                 torch.save(scores, f'{self.clean_output_dir}/batch_{batch_id}.pt')
                 torch.save(label, f'{self.label_output_dir}/batch_{batch_id}.pt')
@@ -106,69 +112,7 @@ class FaultInjectionManager:
         elapsed = math.ceil(time.time() - start_time)
 
         return str(timedelta(seconds=elapsed))
-    '''
-    FOR DVS_LIPS
-    def run_clean(self, fault_manager):
-        """
-        Run a clean inference of the network
-        :return: A string containing the formatted time elapsed from the beginning to the end of the fault injection
-        campaign
-        """
-        self.inject = False
-        with torch.no_grad():
-            args = SimpleNamespace(**{
-                'gpus': '0',
-                'lr': 0.0003,
-                'batch_size': 32,
-                'n_class': 100,
-                'seq_len': 30,
-                'num_workers': 12,
-                'max_epoch': 80,
-                'num_bins': [1, 7],
-                'test': True,
-                'log_dir': None,
-                'weights': 'mstp',
-                'event_root': './data/DVS-Lip',
-                'se': False,
-                'base_channel': 64,
-                'alpha': 4,
-                'beta': 7,
-                't2s_mul': 2
-            })  
-            # Start measuring the time elapsed
-            start_time = time.time()
-            v_acc = []
-            label_pred = {i: [] for i in range(args.n_class)}
-            # Cycle all the batches in the data loader
-            pbar = tqdm(self.loader,
-                        colour='green',
-                        desc=f'Clean Run',
-                        ncols=shutil.get_terminal_size().columns)
-
-            for (i_iter, input) in enumerate(pbar):
-                self.network.eval()
-                tic = time.time()
-                event_low = input.get('event_low').cuda(non_blocking=True)
-                event_high = input.get('event_high').cuda(non_blocking=True)
-                label = input.get('label').cuda(non_blocking=True)
-                with autocast():
-                    logit = self.network(event_low, event_high)
-
-                v_acc.extend((logit.argmax(-1) == label).cpu().numpy().tolist())
-                toc = time.time()
-                label_list = label.cpu().numpy().tolist()
-                pred_list = logit.argmax(-1).cpu().numpy().tolist()
-                for i in range(len(label_list)):
-                    label_pred[label_list[i]].append(pred_list[i])
-            acc_p1, acc_p2 = compute_each_part_acc(label_pred)
-            acc = float(np.array(v_acc).reshape(-1).mean())
-            msg = 'test acc: {:.5f}, acc part1: {:.5f}, acc part2: {:.5f}'.format(acc, acc_p1, acc_p2)   
-            print(msg)
-        # Stop measuring the time
-        elapsed = math.ceil(time.time() - start_time)
-
-        return str(timedelta(seconds=elapsed))    
-    '''
+   
     def run_faulty_campaign(self,
                             fault_list: list,
                             different_scores: bool = False) -> str:
@@ -198,7 +142,7 @@ class FaultInjectionManager:
             # Cycle all the batches in the data loader
             for batch_id, batch in enumerate(self.loader):
                 data, _ = batch
-                if 'snn_audiomnist' or 'csnn_audiomnist' or 'cnn_audiomnist':
+                if 'snn_audiomnist' in self.network_name or 'csnn_audiomnist' in self.network_name or 'cnn_audiomnist' in self.network_name:
                   data 	= data.permute(1, 0, 2)
 
                 data = data.to(self.device)
@@ -216,10 +160,14 @@ class FaultInjectionManager:
                     if (fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike') or self.one == True:
                         # Run inference on the current batch
                         faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
-
+                        print("score")
+                        print(faulty_scores)
+                        print("indices")
+                        print(faulty_indices)
                         # Save the output
                         torch.save(faulty_scores, f'{self.faulty_output_dir}/fault_{fault_id}_batch_{batch_id}.pt')
-                        
+                        print(self.clean_output_scores[batch_id])
+                        print(torch.Tensor(self.clean_output_indices[batch_id]))
                         # Measure the different predictions
                         if different_scores:
                             different_predictions = int(torch.ne(faulty_scores,

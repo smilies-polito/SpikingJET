@@ -186,28 +186,42 @@ def load_SHD_test_dataset(batch_size):
     return test_loader
 
 def load_audiomnist_dataset(batch_size):
-   
     root_dir = "./data/audiomnist"
+    batch_size = batch_size
     sample_rate = 48e3
     fft_window = 25e-3
     hop_length_s = 10e-3
     n_mels = 40
     spiking_thresh = 0.9
-    transform = MelFilterbank(sample_rate=sample_rate,
-                              fft_window=fft_window,
-                              hop_length_s=hop_length_s,
-                              n_mels=n_mels,
-                              db=True,
-                              normalize=True,
-                              spikify=True,
-                              spiking_thresh=spiking_thresh)
+
+    transform = MelFilterbank(
+        sample_rate=sample_rate,
+        fft_window=fft_window,
+        hop_length_s=hop_length_s,
+        n_mels=n_mels,
+        db=True,
+        normalize=True,
+        spikify=True,
+        spiking_thresh=spiking_thresh
+    )
+
     dataset = CustomDataset(root_dir=root_dir, transform=transform)
-    train_size = int(0.8 * len(dataset))
-    test_size = len(dataset) - train_size
-    train_set, test_set = random_split(dataset, [train_size, test_size])
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
-    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
+    # train_size = int(0.7 * len(dataset))
+    # validation_size = int(0.2 * len(dataset))
+    # test_size = len(dataset) - train_size - validation_size
+
+    # train_set, validation_set, test_set = random_split(dataset, [train_size, validation_size, test_size])
+
+    test_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4,
+        drop_last=True
+    )
+
     return test_loader
+
 
 
 def dataset2dataloader(dataset, batch_size, num_workers, shuffle=True):
@@ -266,7 +280,7 @@ def load_from_dict(network, device, path, function=None):
 
 
 
-# SNN_AUDIOMNIST UTILITIES
+# AUDIOMNIST UTILITIES
 
 class CustomDataset(Dataset):
 
@@ -285,10 +299,10 @@ class CustomDataset(Dataset):
 		self.max_length	= max_length
 
 		self.data = []
-       
+
 		# Loop over all the users' directories
 		for user_folder in os.listdir(root_dir):
-			print("user_folder",user_folder)
+			#print("user_folder",user_folder)
 			user_path = os.path.join(root_dir, user_folder)
 			#print("user_path",user_path)
 			if os.path.isdir(user_path):
@@ -346,7 +360,8 @@ class CustomDataset(Dataset):
 
 		lens = torch.tensor([x.shape[0] for x in waveform])
 
-		return waveform, label   #return waveform, lens, label
+		return waveform, label 
+        #return waveform, lens, label
 
 class MelFilterbank:
 
@@ -363,7 +378,8 @@ class MelFilterbank:
 
 		if self.db:
 			# Convert the Mel Spectrogram to dB scale
-			self.db_transform = torchaudio.transforms.AmplitudeToDB()
+			self.db_transform = torchaudio.transforms.\
+						AmplitudeToDB()
 
 		self.normalize		= normalize
 		self.spikify		= spikify

@@ -19,7 +19,7 @@ class Readout(snn.Leaky):
         return mem, fn.softmax(mem, dim=1)
 
 class SNN_AUDIOMNIST(nn.Module):
-	def __init__(self, num_inputs = 40, num_hidden = 150,num_outputs = 10, model = "lif", bias = False,beta = 0.9, threshold = 1.):
+	def __init__(self, num_inputs = 40, num_hidden = 150,num_outputs = 10, model = "lif", bias = False,beta = 0.9375, threshold = 1.):
 		super().__init__()
 		self.FaultInjector = None
 		self.beta1=torch.ones(num_hidden)*beta
@@ -64,12 +64,14 @@ class SNN_AUDIOMNIST(nn.Module):
 
 			mem3_rec.append(mem3)
 			spk3_rec.append(spk3)
+		
 		spk3_rec = torch.stack(spk3_rec, dim=0)
 		mem3_rec = torch.stack(mem3_rec, dim=0)
 		avg_mem = mem3_rec.mean(dim=0)
 		pro = torch.softmax(avg_mem,dim=-1)
 		
 		return pro
+
 		
 		''' This for working with standard flow	
 		spk3_rec = torch.stack(spk3_rec)	
