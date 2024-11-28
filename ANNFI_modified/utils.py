@@ -9,6 +9,8 @@ from models.NMNIST import NMNIST
 from models.SHD import SHD
 from models.DVS_Lip import MSTP
 from models.snn_audiomnist import SNN_AUDIOMNIST
+from models.csnn_audiomnist import CSNN_AUDIOMNIST
+from models.cnn_audiomnist import CNN_AUDIOMNIST
 from models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110, resnet1202
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, densenet121, DenseNet121_Weights
 import matplotlib.pyplot as plt
@@ -135,7 +137,7 @@ def load_network(network_name: str,
         device=device,
         path=network_path)
 
-    elif 'snn_audiomnist' in network_name:
+    elif 'snn_audiomnist' == network_name:
         network = SNN_AUDIOMNIST()
 
         #Load the weights
@@ -144,7 +146,7 @@ def load_network(network_name: str,
         load_from_dict(network=network,
         device=device,
         path=network_path)
-    elif 'csnn_audiomnist' in network_name:
+    elif 'csnn_audiomnist' == network_name:
         network = CSNN_AUDIOMNIST()
 
         #Load the weights
@@ -153,7 +155,7 @@ def load_network(network_name: str,
         load_from_dict(network=network,
         device=device,
         path=network_path)
-    elif 'cnn_audiomnist' in network_name:
+    elif 'cnn_audiomnist' == network_name:
         network = CNN_AUDIOMNIST()
 
         #Load the weights

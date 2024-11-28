@@ -16,7 +16,9 @@ def parse_args():
                         required=True,
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121', 'CSNN'])
+                                 'DenseNet121', 'CSNN', 'NMNIST', 'SHD', 'DVS-Lip', 'snn_audiomnist', 'csnn_audiomnist', 'cnn_audiomnist'])
+    parser.add_argument('--layer', '-l', type=int, default=-1, 
+                        help='Select the layer target of the injection campaign, if -1 perform the injection over the whole network.' )     
     parser.add_argument('--batch-size', '-b', type=int, default=64,
                         help='Test set batch size')
 
@@ -24,6 +26,7 @@ def parse_args():
 
 
 def pt_to_csv(network_name: str,
+              layer: int,
               batch_size: int,
               label: bool,
               faulty: bool,
@@ -49,7 +52,7 @@ def pt_to_csv(network_name: str,
     # Initialize (and create) the output folder path
     output_folder_path = f'output/{network_name}/csv/{faulty_clean_str}/batch_size_{batch_size}'
     os.makedirs(output_folder_path, exist_ok=True)
-    output_file_path = f'{output_folder_path}/results.csv'
+    output_file_path = f'{output_folder_path}/results_{layer}.csv'
 
     number_of_classes = 0
 
@@ -115,6 +118,7 @@ def main():
     # Convert label
     print("Converting pt to csv for LABELS")
     pt_to_csv(network_name=args.network_name,
+              layer=args.layer,
               batch_size=args.batch_size,
               faulty=False,
               label=True)
@@ -122,6 +126,7 @@ def main():
     # Convert clean
     print("Converting pt to csv for CLEAN PREDICTIONS")
     pt_to_csv(network_name=args.network_name,
+              layer=args.layer,  
               batch_size=args.batch_size,
               faulty=False,
               label=False)
@@ -129,6 +134,7 @@ def main():
     # Convert faulty
     print("Converting pt to csv for FAULTY PREDICTIONS")
     pt_to_csv(network_name=args.network_name,
+             layer=args.layer,
              batch_size=args.batch_size,
              label=False,
              faulty=True)

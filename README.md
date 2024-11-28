@@ -37,13 +37,14 @@ After create it once you don't have recreate it everytime. Whenever you want to 
    python3 class_CSNN_DVSGesture.py
 ```
 
-##HOW TO ADD NEW NN:
+## HOW TO ADD NEW NN:
 1) Add in models the file with the model with code instrumentation
     -> Class name NN_DATASET + self.FaultInjector = None + injection in the forward
     -> insert the pretreined weigth file.
+    -> if the NN use new types of layer add the new type of layer in the FaultListGenerator line 30
 2) utils.py -> modify the parse_args 
             -> modify the load_networks 
-3) main.py -> add switch option for the dataloader
+3) main.py -> add switch option for the dataloader, check that shuffle parameter is set to false
 
 4) models/utils.py -> add the function fot the dataloader, one for every ds, used for more NN
 

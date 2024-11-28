@@ -42,6 +42,7 @@ class SNN_AUDIOMNIST(nn.Module):
 		#self.readout = Readout(beta	= beta)
 	
 	def forward(self, input_spikes):
+		input_spikes = input_spikes.permute(1,0,2)
 		mem1 = self.lif1.reset_mem()
 		mem2 = self.lif2.reset_mem()
 		mem3 = self.lif3.reset_mem()
@@ -71,7 +72,6 @@ class SNN_AUDIOMNIST(nn.Module):
 		pro = torch.softmax(avg_mem,dim=-1)
 		
 		return pro
-
 		
 		''' This for working with standard flow	
 		spk3_rec = torch.stack(spk3_rec)	

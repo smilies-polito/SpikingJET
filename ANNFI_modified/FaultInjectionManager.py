@@ -84,22 +84,18 @@ class FaultInjectionManager:
                 #print(batch_id)
   
                 data, label = batch
-                print("label")
-                print(label)
-                #print(len(label)) total of 10000 images
-                if 'snn_audiomnist' in self.network_name or 'csnn_audiomnist' in self.network_name or 'cnn_audiomnist' in self.network_name:
-                  data 	= data.permute(1, 0, 2)
+                
+                # if 'snn_audiomnist' == self.network_name or 'csnn_audiomnist' == self.network_name or 'cnn_audiomnist' == self.network_name:
+                  # data 	= data.permute(1, 0, 2)
+                # if 'cnn_audiomnist' == self.network_name:
+                #   label = labels.repeat(out_rec.shape[0])
+
 
                 data = data.to(self.device)
 
                 # Run inference on the current batch
                 scores, indices = self.__run_inference_on_batch(data=data)
-                print("score")
-                print(scores)
-                print("indices")
-                print(indices)
-                print(f'{self.clean_output_dir}/batch_{batch_id}.pt')
-                print(f'{self.label_output_dir}/batch_{batch_id}.pt')
+                
                 # Save the output
                 torch.save(scores, f'{self.clean_output_dir}/batch_{batch_id}.pt')
                 torch.save(label, f'{self.label_output_dir}/batch_{batch_id}.pt')
@@ -142,8 +138,8 @@ class FaultInjectionManager:
             # Cycle all the batches in the data loader
             for batch_id, batch in enumerate(self.loader):
                 data, _ = batch
-                if 'snn_audiomnist' in self.network_name or 'csnn_audiomnist' in self.network_name or 'cnn_audiomnist' in self.network_name:
-                  data 	= data.permute(1, 0, 2)
+                # if 'snn_audiomnist' in self.network_name or 'csnn_audiomnist' in self.network_name or 'cnn_audiomnist' in self.network_name:
+                #   data 	= data.permute(1, 0, 2)
 
                 data = data.to(self.device)
                 
@@ -160,14 +156,10 @@ class FaultInjectionManager:
                     if (fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike') or self.one == True:
                         # Run inference on the current batch
                         faulty_scores, faulty_indices = self.__run_inference_on_batch(data=data)
-                        print("score")
-                        print(faulty_scores)
-                        print("indices")
-                        print(faulty_indices)
+                        
                         # Save the output
                         torch.save(faulty_scores, f'{self.faulty_output_dir}/fault_{fault_id}_batch_{batch_id}.pt')
-                        print(self.clean_output_scores[batch_id])
-                        print(torch.Tensor(self.clean_output_indices[batch_id]))
+                      
                         # Measure the different predictions
                         if different_scores:
                             different_predictions = int(torch.ne(faulty_scores,

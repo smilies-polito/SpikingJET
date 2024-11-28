@@ -9,7 +9,7 @@ from typing import Type
 
 from FaultGenerators.WeightFault import WeightFault
 
-from torch.nn import Module, Conv2d, Linear
+from torch.nn import Module, Conv2d, Linear, Conv1d
 import torch
 
 import snntorch as snn
@@ -27,7 +27,7 @@ class FaultListGenerator:
                  layer_number: int,
                  param_number: int,
                  device: torch.device,
-                 module_classes: Type[Module] = (Conv2d, snn.Leaky, Linear, snn.Synaptic)): # 
+                 module_classes: Type[Module] = (Conv1d, Conv2d, snn.Leaky, Linear, snn.Synaptic)): # 
 
         self.network = network
         self.network_name = network_name
@@ -39,7 +39,8 @@ class FaultListGenerator:
         # Name of the injectable layers
         injectable_layer_names = [name.split('.')[0] for name, module in self.network.named_modules()
                                   if isinstance(module, module_classes)]
-        
+        print("Injectable layer names:")
+        print(injectable_layer_names)
         if self.layer_number is -1:
             self.layer_target = None
         elif self.layer_number > -1 and self.layer_number < len(injectable_layer_names):   
@@ -56,9 +57,9 @@ class FaultListGenerator:
         # List of the injectable params
         self.net_layer_params = {name: param for name, param in self.network.named_parameters()
                                  if name.split('.')[0] in injectable_layer_names}
-        print(self.net_layer_params)
+        #print(self.net_layer_params)
              
-        print(self.network.state_dict())    
+        #print(self.network.state_dict())    
     @staticmethod
     def __compute_date_n(N: int,
                          p: float = 0.5,
@@ -79,7 +80,7 @@ class FaultListGenerator:
                                 save_fault_list=True,
                                 seed=1,
                                 p=0.5,
-                                e=0.01,
+                                e=0.50,
                                 t=2.58,
                                 FaultInjectionManager=None):
         """
