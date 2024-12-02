@@ -80,7 +80,7 @@ class FaultListGenerator:
                                 save_fault_list=True,
                                 seed=1,
                                 p=0.5,
-                                e=0.50,
+                                e=0.01,
                                 t=2.58,
                                 FaultInjectionManager=None):
         """

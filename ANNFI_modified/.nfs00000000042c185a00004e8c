@@ -21,7 +21,7 @@ for ((i=0; i<n; i++))
 do
     echo "Running: python3 main.py -n $neural_network -l $i"
     python3 main.py -n "$neural_network" -l "$i"
-    python3 pt_to_csv.py -n "$neural_network" -l "$i"
+    python3 analyse.py -n "$neural_network" -l "$i"
     if [ $? -ne 0 ]; then
         echo "Error: Command failed at iteration $i"
         exit 1
