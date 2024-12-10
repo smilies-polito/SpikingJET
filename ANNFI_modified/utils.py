@@ -73,6 +73,7 @@ def load_network(network_name: str,
     :param device: the device where to load the network
     :return: The loaded network
     """
+    print(f'Using device {device}')
 
     if 'ResNet' in network_name:
         if network_name == 'ResNet20':
@@ -262,3 +263,4 @@ def plot_distribution(model, network, dataset):
     anchored_text = AnchoredText("Min=%s, Max=%s, Std Deviation=%s, Mean=%s" %(min_val, max_val, std_dev, mean), loc="upper right")
     ax.add_artist(anchored_text)
     plt.savefig(pathname)
+

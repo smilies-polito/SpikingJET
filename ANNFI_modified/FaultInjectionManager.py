@@ -27,7 +27,8 @@ class FaultInjectionManager:
                  network_name: str,
                  device: torch.device,
                  loader: DataLoader):
-        
+        print(f'Using device {device}')
+
         self.network = network
         self.network_name = network_name
         self.loader = loader

@@ -17,6 +17,7 @@ def main(args):
     device = get_device(forbid_cuda=args.forbid_cuda,
                         use_cuda=args.use_cuda)
     print(f'Using device {device}')
+    print(f'Using batch size {args.batch_size}')
 
     # Load the network
     network = load_network(network_name=args.network_name,
@@ -75,3 +76,4 @@ def main(args):
 
 if __name__ == '__main__': 
     main(args=parse_args())
+

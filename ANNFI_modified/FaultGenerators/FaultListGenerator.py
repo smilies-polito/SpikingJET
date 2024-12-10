@@ -35,6 +35,7 @@ class FaultListGenerator:
         self.param_number = param_number
         
         self.device = device
+        print(f'Using device {device}')
 
         # Name of the injectable layers
         injectable_layer_names = [name.split('.')[0] for name, module in self.network.named_modules()
