@@ -50,7 +50,7 @@ class FaultListGenerator:
     @staticmethod
     def __compute_date_n(N: int,
                          p: float = 0.5,
-                         e: float = 0.01,
+                         e: float = 0.03,
                          t: float = 2.58):
         """
         Compute the number of faults to inject according to the DATE09 formula
@@ -67,7 +67,7 @@ class FaultListGenerator:
                                 save_fault_list=True,
                                 seed=51196,
                                 p=0.5,
-                                e=0.01,
+                                e=0.03,
                                 t=2.58,
                                 FaultInjectionManager=None):
         """
@@ -101,11 +101,31 @@ class FaultListGenerator:
                 with open(f'{fault_list_filename}/{seed}_fault_list.csv', newline='') as f_list:
                     reader = csv.reader(f_list)
 
-                    fault_list = list(reader)[1:]
+                    all_rows = list(reader)
+                    header = all_rows[0]
+                    fault_list = all_rows[1:]
 
-                    fault_list = [WeightFault(layer_name=fault[1],
-                                              tensor_index=make_tuple(fault[2]),
-                                              bit=int(fault[-1])) for fault in fault_list]
+                    # STUCK-AT FIX: read 'Value' column if present (new fault
+                    # list format), otherwise assign None (backward-compat with
+                    # old fault lists that only worked for bit-flip mode).
+                    if 'Value' in header:
+                        value_idx = header.index('Value')
+                        fault_list = [WeightFault(layer_name=fault[1],
+                                                  tensor_index=make_tuple(fault[2]),
+                                                  bit=int(fault[3]),
+                                                  value=int(fault[value_idx]))
+                                      for fault in fault_list]
+                    else:
+                        # Old-format fault list — value stays None, only usable
+                        # in bit-flip mode. If stuck-at mode is requested with
+                        # such a fault list, __inject_fault will silently fall
+                        # back to bit-flip — that's the exact bug this fix
+                        # addresses. Regenerate fault lists after applying
+                        # this fix to get proper stuck-at behavior.
+                        fault_list = [WeightFault(layer_name=fault[1],
+                                                  tensor_index=make_tuple(fault[2]),
+                                                  bit=int(fault[-1]))
+                                      for fault in fault_list]
 
                 print('Fault list loaded from file')
 
@@ -137,19 +157,32 @@ class FaultListGenerator:
             
             fault_list = random_generator.choice(exhaustive_fault_list, int(n), replace=False)
             del exhaustive_fault_list
+            # STUCK-AT FIX: assign a random stuck-at value (0 or 1) to each
+            # fault at generation time. This makes the fault list truly mode-
+            # agnostic — bit-flip mode ignores 'value', stuck-at mode uses it.
+            # A single fault list can now be used for either fault mode.
+            # Uses the same random_generator so results are deterministic wrt
+            # the seed (necessary for reproducibility).
+            stuck_values = random_generator.integers(low=0, high=2, size=len(fault_list))
             fault_list = [WeightFault(layer_name=fault[0],
                                       tensor_index=tuple([int(i) for i in fault[1:-1]if i is not None]),
-                                      bit=int(fault[-1])) for fault in fault_list]
+                                      bit=int(fault[-1]),
+                                      value=int(stuck_values[idx]))
+                          for idx, fault in enumerate(fault_list)]
             
             if save_fault_list:
                 os.makedirs(fault_list_filename, exist_ok=True)
                 with open(f'{fault_list_filename}/{seed}_fault_list.csv', 'w', newline='') as f_list:
                     writer_fault = csv.writer(f_list)
 
+                    # STUCK-AT FIX: added 'Value' column so stuck-at value is
+                    # persisted alongside layer/tensor_index/bit. Bit-flip mode
+                    # ignores this column, stuck-at mode uses it.
                     writer_fault.writerow(['Injection',
                                            'Layer',
                                            'TensorIndex',
-                                           'Bit'])
+                                           'Bit',
+                                           'Value'])
 
                     golden_value_list = list()
                     faulty_value_list = list()
@@ -174,7 +207,12 @@ class FaultListGenerator:
                                 FaultInjectionManager.faults[layer] = []
                             FaultInjectionManager.faults[layer].append([fault.tensor_index, fault.bit])
                         # Write fault list to csv
-                        writer_fault.writerow([index, fault.layer_name, fault.tensor_index, fault.bit])    
+                        # STUCK-AT FIX: write value column (stuck-at value)
+                        # so it can be loaded back and used correctly in
+                        # stuck-at mode.
+                        writer_fault.writerow([index, fault.layer_name,
+                                               fault.tensor_index, fault.bit,
+                                               fault.value])
 
                     # Write fault information to numpy
                     np.savez(f'{fault_list_filename}/{seed}_weights', golden=golden_value_list, faulty=faulty_value_list)

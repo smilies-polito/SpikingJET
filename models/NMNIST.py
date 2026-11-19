@@ -43,11 +43,11 @@ class NMNIST(nn.Module):
             
             cur1 = self.fc1(x[step])
             spk1, mem1 = self.lif1(cur1, mem1)
-            self.FaultInjector.injection(mem1, spk1, 'lif1', curr_step)
+            if self.FaultInjector is not None: self.FaultInjector.injection(mem1, spk1, 'lif1', curr_step)
 
             cur2 = self.fc2(spk1)
             spk2, mem2 = self.lif2(cur2, mem2)
-            self.FaultInjector.injection(mem2, spk2,'lif2', curr_step)
+            if self.FaultInjector is not None: self.FaultInjector.injection(mem2, spk2,'lif2', curr_step)
 
             spk2_rec.append(spk2)
             curr_step += 1

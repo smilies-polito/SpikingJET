@@ -1,0 +1,40 @@
+# Default deployment profile of SHD_DELAY on a memory-based neuromorphic accelerator.
+# Bias, threshold and membrane share one fixed-point scale per layer (frac chosen by calibration
+# so that the 99.99th percentile of |membrane| fits in 16 bits).
+name = "default"
+
+[weight]
+kind = "int"
+bits = 8
+granularity = "layer"     # one symmetric scale per layer
+
+[delay]
+kind = "uint"
+bits = 5                  # codes 0..31; values above 24 saturate to 24 when used
+
+[bias]
+kind = "fixed"
+bits = 16
+signed = true
+scale = "membrane"
+
+[threshold]
+kind = "fixed"
+bits = 16
+signed = true
+scale = "membrane"
+storage = "shared"        # one word per layer
+
+[leak]
+kind = "fixed"
+bits = 12
+signed = false
+frac = 12                 # unsigned fraction: beta = code / 4096
+storage = "shared"
+
+[membrane]
+kind = "fixed"
+bits = 16
+signed = true
+saturate = true
+calibration_percentile = 99.99

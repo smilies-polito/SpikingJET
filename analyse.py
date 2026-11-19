@@ -122,11 +122,8 @@ parser.add_argument('--fault-list', '-fl', type=str,
                     help='File name of the fault list')
 parser.add_argument('--batch-size', '-b', type=int, default=64,
                     help='Test set batch size')
-parser.add_argument('--network-name', '-n', type=str,
-                    required=True,
-                    help='Target network',
-                    choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                'DenseNet121', 'CSNN', 'NMNIST','SHD'])
+parser.add_argument('--network-name', '-n', type=str, required=True,
+                    help='Network of the campaign (as passed to main.py)')
 
 parsed_args = parser.parse_args()
 
@@ -159,6 +156,7 @@ for layer in ID_dict.keys():
     tot_SDCper_20 = 0
     tot_facc = 0
     tot_acc = 0
+    samples = 0     # every rate is weighted by the batch size (per-sample mean)
 
     print(str(len(ID_dict[layer])) + ' fault injected into ' + layer)
 
@@ -188,36 +186,41 @@ for layer in ID_dict.keys():
             acc = faulty_vs_ground(clean,label)
 
 
+            n = label.shape[0]
             count +=1
-            tot_fully_masked += fully_masked
-            tot_SDC_1_score += SDC_1_score
-            tot_SDCper_0_5 += SDCper_0_5
-            tot_SDCper_5_10 += SDCper_5_10
-            tot_SDCper_10_20 += SDCper_10_20
-            tot_SDCper_20 += SDCper_20
-            tot_facc += facc
-            tot_acc += acc
+            samples += n
+            tot_fully_masked += fully_masked * n
+            tot_SDC_1_score += SDC_1_score * n
+            tot_SDCper_0_5 += SDCper_0_5 * n
+            tot_SDCper_5_10 += SDCper_5_10 * n
+            tot_SDCper_10_20 += SDCper_10_20 * n
+            tot_SDCper_20 += SDCper_20 * n
+            tot_facc += facc * n
+            tot_acc += acc * n
 
             if count % 10000 == 0:
-                check1 = tot_SDC_1_score/count
-                check2 = tot_fully_masked/count
-                check3 = tot_SDCper_0_5/count
+                check1 = tot_SDC_1_score/samples
+                check2 = tot_fully_masked/samples
+                check3 = tot_SDCper_0_5/samples
                 print('Checkpoint SDC_1_score at {} is {}'.format(count, check1))
                 print('Checkpoint tot_fully_masked at {} is {}'.format(count, check2))
                 print('Checkpoint tot_SDCper_0_5 at {} is {}'.format(count, check3))
                 print()
 
-    print('SDC_1 score for ' + layer + ' is ' + str(tot_SDC_1_score/count))
-    print('SDC_5per score for ' + layer + ' is ' + str(tot_SDCper_0_5/count))
+    if samples == 0:                     # no results for this layer (campaign interrupted or partial)
+        print('no results for ' + layer + ', skipped')
+        continue
+    print('SDC_1 score for ' + layer + ' is ' + str(tot_SDC_1_score/samples))
+    print('SDC_5per score for ' + layer + ' is ' + str(tot_SDCper_0_5/samples))
     # print('SDC_10per score for ' + layer + ' is ' + str(tot_SDC_10per_score/count))
     # print('SDC_15per score for ' + layer + ' is ' + str(tot_SDC_15per_score/count))
     # print('SDC_20per score for ' + layer + ' is ' + str(tot_SDC_20per_score/count))
 
-    sdc_1_dict[layer] = tot_SDC_1_score/count
-    fully_masked_dict[layer] = tot_fully_masked/count
+    sdc_1_dict[layer] = tot_SDC_1_score/samples
+    fully_masked_dict[layer] = tot_fully_masked/samples
     if count == 0:
         print(layer)
-    score[layer] = int(len(ID_dict[layer])),int(count), tot_fully_masked/count, tot_SDC_1_score/count, tot_SDCper_0_5/count, tot_SDCper_5_10/count, tot_SDCper_10_20/count, tot_SDCper_20/count, tot_facc/count, tot_acc/count
+    score[layer] = int(len(ID_dict[layer])),int(count), tot_fully_masked/samples, tot_SDC_1_score/samples, tot_SDCper_0_5/samples, tot_SDCper_5_10/samples, tot_SDCper_10_20/samples, tot_SDCper_20/samples, tot_facc/samples, tot_acc/samples
     print(sdc_1_dict)
     print(fully_masked_dict)
     print('\n')
