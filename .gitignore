@@ -1,16 +1,10 @@
-*.png
-*.txt
+# datasets, caches and campaign results (created at run time)
+data/
+cache/
+output/
+ber_results/
+hw_results/
 *.sif
-__pycache__
-*.csv
-*.th
-*.pth
-*.pt
-*.npy
-*.npz
-*.hdf5
-*.tar.gz
-weights
-data
-event-based-lip-reading/
-event-based-lip-reading/data/DVS-Lip/test/
+__pycache__/
+*.pyc
+.pytest_cache/

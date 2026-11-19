@@ -8,11 +8,10 @@ From: ubuntu:22.04
 	apt install -y vim
 	apt install -y python3
 
-    pip install torch==1.6.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
+    pip install torch==1.13.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
 	pip install torchaudio==0.13.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
 	pip install torchvision==0.14.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
     pip install snntorch
-	pip install tensorboard
 	pip install h5py
 	pip install seaborn
 	pip install certifi==2022.9.24
@@ -28,5 +27,6 @@ From: ubuntu:22.04
 	pip install scipy
 	pip install torch-summary
     pip install tonic
-	pip install panda
+	pip install pandas
 
+	pip install --no-deps dcls==0.1.1
