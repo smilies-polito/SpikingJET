@@ -3,6 +3,7 @@ import shutil
 import time
 import math
 import random
+import struct
 from datetime import timedelta
 
 import torch
@@ -102,12 +103,15 @@ class FaultInjectionManager:
 
     def run_faulty_campaign(self,
                             fault_list: list,
-                            different_scores: bool = False) -> str:
+                            different_scores: bool = False,
+                            fault_mode: str = 'stuck-at') -> str:
         """
         Run a faulty injection campaign for the network
         :param fault_list: list of fault to inject
         :param different_scores: Default False. If True, compare the faulty scores with the clean scores, otherwise
         compare the top-1 indices
+        :param fault_mode: Either 'stuck-at' or 'bit-flip'. Determines which injection routine is called for weight
+        faults
         :return: A string containing the formatted time elapsed from the beginning to the end of the fault injection
         campaign
         """
@@ -116,6 +120,7 @@ class FaultInjectionManager:
         total_predictions = 0
 
         self.inject = True
+        self.fault_mode = fault_mode
         with torch.no_grad():
 
             # Start measuring the time elapsed
@@ -136,10 +141,14 @@ class FaultInjectionManager:
                     
                     if fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike':
                         # Inject faults in the weight
-                        self.__inject_fault_on_weight(fault, fault_mode='stuck-at')
+                        self.__inject_fault_on_weight(fault, fault_mode=fault_mode)
                         self.current = None
                     else:
-                        self.current = [fault.layer_name.split('.')[0], fault.layer_name.split('.')[1], fault.tensor_index, fault.bit, random.randint(0,24)]
+                        # [layer, 'potential'|'spike', index, bit, transient step, stuck-at value]
+                        n_steps = getattr(self.network, 'num_steps', None) or self.num_step
+                        self.current = [fault.layer_name.split('.')[0], fault.layer_name.split('.')[1],
+                                        fault.tensor_index, fault.bit, random.randint(0, n_steps - 1),
+                                        fault.value]
                     
                     if (fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike') or self.one == True:
                         # Run inference on the current batch
@@ -254,20 +263,28 @@ class FaultInjectionManager:
           self.mask[layer][tensor_index] += 2**bit_index
           
 
-    def injection_dict(self, pot, spike, layer, pot_or_spike, tensor_index, bit_index):
-        '''
-        inject faults using the dictionary
-        '''
-        if pot_or_spike == "potential":
-          for i in range(self.size[layer][0]):
-            golden_value = float(pot[(i,) + tensor_index])
-            faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
-            pot[(i,) + tensor_index] = faulty_value
-        else: #to be modified
-          for i in range(self.size[layer][0]):
-            golden_value = float(pot[(i,) + tensor_index])
-            faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
-            pot[(i,) + tensor_index] = faulty_value     
+    @staticmethod
+    def _float32_stuck_at(golden_value: float, bit: int, value: int) -> float:
+        a = struct.pack('!f', golden_value)
+        b = struct.pack('!I', int(2. ** bit))
+        out = bytes((ba | bb) if value == 1 else (ba & (255 - bb)) for ba, bb in zip(a, b))
+        return struct.unpack('!f', out)[0]
+
+    def injection_dict(self, pot, spike, layer, pot_or_spike, tensor_index, bit_index, value=None):
+        """
+        Inject one neuron-state fault, in place, for every sample of the current batch.
+        'potential' corrupts the membrane potential, 'spike' corrupts the output spike.
+        Bit-flip or stuck-at follows the campaign fault mode (stuck-at uses the fault's value).
+        """
+        target = pot if pot_or_spike == "potential" else spike
+        stuck = getattr(self, 'fault_mode', 'bit-flip') == 'stuck-at' and value is not None
+        for i in range(target.shape[0]):                     # real batch size, not the clean-run one
+            golden_value = float(target[(i,) + tuple(tensor_index)])
+            if stuck:
+                faulty_value = self._float32_stuck_at(golden_value, bit_index, value)
+            else:
+                faulty_value = float32_bit_flip(golden_value=golden_value, bit=bit_index)
+            target[(i,) + tuple(tensor_index)] = faulty_value
 
     def injection_xor(self, pot, layer):    
       '''
@@ -287,7 +304,8 @@ class FaultInjectionManager:
             if self.current[0] == layer:
               if self.transient == False or (self.transient and curr_step == self.current[4]):
                 
-                self.injection_dict(pot, spike, layer, self.current[1], self.current[2], self.current[3])
+                self.injection_dict(pot, spike, layer, self.current[1], self.current[2], self.current[3],
+                                    self.current[5] if len(self.current) > 5 else None)
                 
                 
       else:

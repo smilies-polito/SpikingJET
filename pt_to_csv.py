@@ -14,9 +14,7 @@ def parse_args():
 
     parser.add_argument('--network-name', '-n', type=str,
                         required=True,
-                        help='Target network',
-                        choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
-                                 'DenseNet121', 'CSNN'])
+                        help='Network of the campaign (as passed to main.py)')
     parser.add_argument('--batch-size', '-b', type=int, default=64,
                         help='Test set batch size')
 

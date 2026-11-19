@@ -1,0 +1,30 @@
+# BatchNorm folded, no quantization: every quantity is an IEEE-754 binary32 word, so bit faults
+# act on the FP32 pattern as in the original SpikingJET campaigns. Delays are stored as FP32
+# values too; when used they are rounded and saturated to 0..24 (NaN -> 24).
+name = "fp32"
+
+[weight]
+kind = "float"
+bits = 32
+
+[delay]
+kind = "float"
+bits = 32
+
+[bias]
+kind = "float"
+bits = 32
+
+[threshold]
+kind = "float"
+bits = 32
+storage = "shared"
+
+[leak]
+kind = "float"
+bits = 32
+storage = "shared"
+
+[membrane]
+kind = "float"
+bits = 32

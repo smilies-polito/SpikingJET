@@ -1,0 +1,10 @@
+# datasets, caches and campaign results (created at run time)
+data/
+cache/
+output/
+ber_results/
+hw_results/
+*.sif
+__pycache__/
+*.pyc
+.pytest_cache/
