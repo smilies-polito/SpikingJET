@@ -1,0 +1,12 @@
+torch>=1.13
+torchvision
+snntorch
+tonic
+numpy
+pandas
+scipy
+matplotlib
+tqdm
+h5py
+dcls==0.1.1          # only to train SHD_DELAY (train_shd_delays.py)
+pytest               # tests/
