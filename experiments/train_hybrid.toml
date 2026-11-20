@@ -1,0 +1,15 @@
+# Train the mixed network NMNIST_HYBRID (conv front end + spiking back end) without faults:
+# the checkpoint shipped in models/pretrained_models/NMNIST_HYBRID.th.
+#   python download_datasets.py nmnist --train
+#   python spikingjet.py train --config experiments/train_hybrid.toml
+network = "NMNIST_HYBRID"
+batch_size = 128
+seed = 0
+
+[train]
+epochs = 8
+optimizer = "adamw"
+lr = 2e-3
+weight_decay = 1e-4
+scheduler = "onecycle"
+eval_bers = [1e-6, 1e-5, 1e-4]

@@ -1,0 +1,12 @@
+# Single-fault campaign on the activations of a mixed network (conv front end + spiking back end):
+# faults in ReLU / Conv / Linear outputs and in the neuron states, no weights.
+#   python spikingjet.py campaign --config experiments/campaign_activations.toml
+network = "NMNIST_HYBRID"
+
+[campaign]
+fault_model = "bit-flip"
+targets = ["activations", "neurons"]
+exclude = ["*.spike"]              # glob patterns on site names: python spikingjet.py sites -n NMNIST_HYBRID
+bits = "exponent"                  # all | mantissa | exponent | sign | low-mantissa | [lo, hi] | [b1, b2, ...]
+max_faults = 500                   # cap of the DATE'09 sample (0 = full sample)
+save_outputs = false               # only the per-site summary CSV, no raw .pt scores

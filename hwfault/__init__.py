@@ -7,6 +7,6 @@ draw           counter-based BER drawing and stratified single-fault lists
 metrics        per-fault and per-realization damage metrics
 catalog_campaign / ber_campaign   campaign runners used by hw_campaign.py
 
-This package is additive: the original FP32 single-fault engine (main.py,
-FaultInjectionManager, FaultGenerators) is not modified.
+Hardware (integer-format) counterpart of the FP32 engine in spikingjet/: it works on the
+deployment form of SHD_DELAY (models/deployed_shd.py) and has its own memory map and codecs.
 """
