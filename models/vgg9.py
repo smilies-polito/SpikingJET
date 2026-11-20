@@ -124,5 +124,6 @@ if __name__ == "__main__":
     y = net(x)
     print(f"Input shape:  {tuple(x.shape)}")
     print(f"Output shape: {tuple(y.shape)}")
-    assert y.shape == (4, 10), f"Expected (4, 10), got {tuple(y.shape)}"
+    if y.shape != (4, 10):
+        raise RuntimeError(f"Expected (4, 10), got {tuple(y.shape)}")
     print("Self-test PASSED")

@@ -146,8 +146,10 @@ class FaultInjectionManager:
                     else:
                         # [layer, 'potential'|'spike', index, bit, transient step, stuck-at value]
                         n_steps = getattr(self.network, 'num_steps', None) or self.num_step
+                        # random onset step of a transient fault (simulation randomness, not security)
+                        step = random.randint(0, n_steps - 1)  # nosemgrep
                         self.current = [fault.layer_name.split('.')[0], fault.layer_name.split('.')[1],
-                                        fault.tensor_index, fault.bit, random.randint(0, n_steps - 1),
+                                        fault.tensor_index, fault.bit, step,
                                         fault.value]
                     
                     if (fault.layer_name.split('.')[1] != 'potential' and fault.layer_name.split('.')[1] != 'spike') or self.one == True:
