@@ -16,7 +16,7 @@ SpikingJET compatibility rules this file follows
 2. beta and threshold are nn.Parameters (learn_beta / learn_threshold = True). Buffers are not in
    named_parameters() and would never receive faults.
 3. Every spiking layer calls  self._inj(spk, mem, '<layer name>', t)  at every time step, with the
-   arguments in the order FaultInjectionManager.injection(spike, pot, layer, step) expects.
+   arguments in the order FaultInjector.injection(spike, pot, layer, step) expects (spikingjet.injector).
    The layer name is the attribute name (no dots), so '<name>.potential' / '<name>.spike' parse.
 4. FaultInjector may be None (training): the hook is skipped.
 5. forward() returns [batch, classes] scores; argmax is the prediction.
@@ -566,8 +566,8 @@ SNN_SOTA = {
 }
 
 
-def build_snn_sota(network_name: str, device):
-    path = f"models/pretrained_models/{network_name}.th"
+def build_snn_sota(network_name: str, device, path=None):
+    path = path or f"models/pretrained_models/{network_name}.th"
     state = torch.load(path, map_location=device)
     net = SNN_SOTA[network_name](**state.get("model_config", {}))   # e.g. {'readout': 'softmax'}
     sd = {k.replace("module.", ""): v for k, v in state["state_dict"].items()}

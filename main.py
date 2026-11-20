@@ -1,58 +1,40 @@
-import torch
+#!/usr/bin/env python3
+"""
+Single-fault campaign (command-line front end of `python spikingjet.py campaign`).
 
-from FaultInjectionManager import FaultInjectionManager
-from FaultGenerators.FaultListGenerator import FaultListGenerator
+    python main.py -n SHD_DELAY --use-cuda --fault-mode bit-flip
+    python main.py -n NMNIST_HYBRID --use-cuda --targets activations neurons --max-faults 500
+    python main.py -n SHD_DELAY --config experiments/campaign_snn.toml      # every option of [campaign]
 
-from networks import load_network
-from utils import get_device, parse_args
+Results: output/fault_list/<network>/<seed>_fault_list.csv (faults),
+<seed>_fault_list_result_batch_size_<b>.csv (per-site summary), output/<network>/pt/ (raw scores).
+"""
+import sys
+
+from spikingjet import campaign
+from spikingjet.config import load_config
+from utils import parse_args
 
 
 def main(args):
+    if args.forbid_cuda:
+        device = "cpu"
+    elif args.use_cuda:
+        device = "cuda"
+    else:
+        device = None                                # config value (default: auto)
+    cfg = load_config(args.config, args.set,
+                      network=args.network_name,
+                      batch_size=args.batch_size,
+                      device=device,
+                      tf32=True if args.tf32 else None,
+                      campaign__fault_model=args.fault_mode,
+                      campaign__seed=args.seed,
+                      campaign__max_faults=args.max_faults,
+                      campaign__targets=args.targets,
+                      campaign__neuron_persistence=args.neuron_persistence)
+    campaign.run(cfg)
 
-    # Set deterministic algorithms
-    torch.use_deterministic_algorithms(mode=True)
-    # Exact FP32 unless --tf32 (numerics.py)
-    from numerics import set_tf32
-    print(f'Numerics: {set_tf32(args.tf32, deterministic=False)}')
 
-    # Select the device
-    device = get_device(forbid_cuda=args.forbid_cuda,
-                        use_cuda=args.use_cuda)
-    print(f'Using device {device}')
-
-    # Load the network
-    network = load_network(args.network_name, device)
-
-    # Load the dataset registered for the network (networks.py)
-    from networks import get_loader
-    loader = get_loader(args.network_name, 'test', args.batch_size)
-
-    # Execute the fault injection campaign with the smart network
-    fault_injection_executor = FaultInjectionManager(network=network,
-                                                     network_name=args.network_name,
-                                                     device=device,
-                                                     loader=loader)
-
-    network.FaultInjector = fault_injection_executor
-    
-    fault_manager = FaultListGenerator(network=network,
-                                       network_name=args.network_name,
-                                       device=device)
-
-    #This function runs clean inferences on the golden dataset
-    fault_injection_executor.run_clean(fault_manager)
-
-    
-    # Generate fault list
-    fault_list = fault_manager.get_fault_list(load_fault_list=False,
-                                                     save_fault_list=True,
-                                                     seed=args.seed,
-                                                     FaultInjectionManager = fault_injection_executor)
-
-    # Run the faulty campaign (one fault at a time) with the requested fault mode
-    fault_injection_executor.run_faulty_campaign(fault_list=fault_list,
-                                                    fault_mode=args.fault_mode)
-    
-
-if __name__ == '__main__':
-    main(args=parse_args())
+if __name__ == "__main__":
+    sys.exit(main(parse_args()))

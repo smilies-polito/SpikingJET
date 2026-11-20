@@ -1,0 +1,28 @@
+# Fault-aware training (RandBET-style): at every step the forward/backward pass runs with random
+# weight bit-flips, the update is applied to the clean weights. Afterwards, accuracy under weight
+# bit-flips is measured (eval_bers) to see the gained robustness.
+#   python spikingjet.py train --config experiments/train_fault_aware.toml
+network = "NMNIST_HYBRID"
+batch_size = 128
+out = "models/pretrained_models/NMNIST_HYBRID_fat.th"
+
+[train]
+epochs = 5
+optimizer = "adamw"
+lr = 2e-3
+scheduler = "onecycle"
+eval_bers = [1e-5, 1e-4, 1e-3]
+
+[[train.faults]]
+target = "params"
+fault_model = "bit-flip"
+bits = "mantissa"                  # exponent flips explode the value; mantissa flips train robustness
+ber = 1e-3
+persistence = "transient"          # faults for one step only, then removed
+
+[[train.faults]]
+target = "activations"             # also faults in ReLU / Conv / Linear outputs
+select = ["features.*"]
+bits = "mantissa"
+ber = 1e-4
+persistence = "transient"

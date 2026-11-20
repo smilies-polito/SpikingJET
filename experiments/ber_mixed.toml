@@ -1,0 +1,22 @@
+# BER sweep with faults in the weights AND, at the same rate, in the neuron states (fresh faults at
+# every timestep). Works for SNNs, CNNs (use target "activations") and mixed networks.
+#   python spikingjet.py ber --config experiments/ber_mixed.toml
+network = "NMNIST_HYBRID"
+batch_size = 256
+out = "ber_results/hybrid_mixed.csv"
+
+[ber]
+bers = [1e-6, 1e-5, 1e-4, 1e-3]
+realizations = 5
+
+[[ber.faults]]
+target = "params"                  # weight memory: one fault map per realization
+fault_model = "bit-flip"
+bits = "all"
+
+[[ber.faults]]
+target = "neurons"
+select = ["*.potential"]           # membrane potentials only
+fault_model = "bit-flip"
+bits = "all"
+persistence = "transient"          # transient: new faults at every timestep | permanent: fixed positions

@@ -1,95 +1,12 @@
 import torch
-import numpy as np
 import pandas as pd
 import os
 import argparse
 
-def SDC_percentage(faulty_batch, clean_batch, lower_th, higher_th):
-    # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
-    clean_labels, clean_index = torch.max(clean_batch, dim=1) 
-    faulty_labels, faulty_index = torch.max(faulty_batch, dim=1)
-
-    same_ind = torch.eq(clean_index, faulty_index)
-    diff_vec = torch.abs(clean_labels - faulty_labels)/clean_labels
-    lower_vec = diff_vec < higher_th
-    higher_vec = diff_vec > lower_th
-
-    res_per = same_ind & lower_vec & higher_vec
-    score = torch.mean(res_per.float())
-
-    return score.item()
-
 def SDC_interval(faulty_batch, clean_batch):
-    # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
-    clean_labels, clean_index = torch.max(clean_batch, dim=1) 
-    faulty_labels, faulty_index = torch.max(faulty_batch, dim=1)
-
-    same_ind = torch.eq(clean_index, faulty_index)
-    same_label = torch.eq(clean_labels, faulty_labels)
-    diff_vec = 100*torch.abs(clean_labels - faulty_labels)/clean_labels
-    
-    less_5 = diff_vec < 5
-    less_10 = diff_vec < 10
-    less_20 = diff_vec < 20
-
-    more_5 = diff_vec > 5
-    more_10 = diff_vec > 10
-    more_20 = diff_vec > 20
-
-    fully_masked_bool = same_ind & same_label
-    fully_masked_score = torch.mean(fully_masked_bool.float())
-
-    SDC_1_score = 1 - torch.mean(same_ind.float())
-    
-    SDC_0_5_bool = same_ind & less_5 & torch.logical_not(same_label)
-    SDC_0_5_score = torch.mean(SDC_0_5_bool.float())
-
-    SDC_5_10_bool = same_ind & less_10 & more_5
-    SDC_5_10_score = torch.mean(SDC_5_10_bool.float())
-
-    SDC_10_20_bool = same_ind & less_20 & more_10
-    SDC_10_20_score = torch.mean(SDC_10_20_bool.float())
-
-    SDC_20_bool = same_ind & more_20
-    SDC_20_score = torch.mean(SDC_20_bool.float())
-
-    return fully_masked_score.item(), SDC_1_score.item(), SDC_0_5_score.item(), SDC_5_10_score.item(), SDC_10_20_score.item(), SDC_20_score.item()
-
-def SDC(faulty_batch, clean_batch):
-    # Calculates the SDC-percentage score (SDC_10%, SDC_20%)
-    clean_labels, clean_index = torch.max(clean_batch, dim=1) 
-    faulty_labels, faulty_index = torch.max(faulty_batch, dim=1)
-
-    same_ind = torch.eq(clean_index, faulty_index)
-    same_label = torch.eq(clean_labels, faulty_labels)
-    diff_vec = 100*torch.abs(clean_labels - faulty_labels)/clean_labels
-    
-    less_5 = diff_vec < 5
-    less_10 = diff_vec < 10
-    less_20 = diff_vec < 20
-
-    # more_5 = diff_vec > 5
-    # more_10 = diff_vec > 10
-    more_20 = diff_vec > 20
-
-    fully_masked_bool = same_ind & same_label
-    fully_masked_score = torch.mean(fully_masked_bool.float())
-
-    SDC_1_score = 1 - torch.mean(same_ind.float())
-    
-    SDC_5per_bool = same_ind & less_5 & torch.logical_not(same_label)
-    SDC_5per_score = torch.mean(SDC_5per_bool.float())
-
-    SDC_10per_bool = same_ind & less_10 & torch.logical_not(same_label)# & more_5
-    SDC_10per_score = torch.mean(SDC_10per_bool.float())
-
-    SDC_20per_bool = same_ind & less_20 & torch.logical_not(same_label)# & more_10
-    SDC_20per_score = torch.mean(SDC_20per_bool.float())
-
-    masked_bool = same_ind & more_20
-    masked_score = torch.mean(masked_bool.float())
-
-    return fully_masked_score.item(), SDC_1_score.item(), SDC_5per_score.item(), SDC_10per_score.item(), SDC_20per_score.item(), masked_score.item()
+    # fully masked, SDC_1, SDC_0_5%, SDC_5_10%, SDC_10_20%, SDC_20 (shared with the campaign)
+    from spikingjet.metrics import sdc_interval
+    return sdc_interval(faulty_batch, clean_batch)
 
 def faulty_vs_ground(faulty_batch, labels):
 
@@ -180,7 +97,6 @@ for layer in ID_dict.keys():
             label = torch.load(label_path)
         
             fully_masked,SDC_1_score,SDCper_0_5,SDCper_5_10,SDCper_10_20,SDCper_20 = SDC_interval(faulty, clean)
-            # fully_masked,SDC_1_score,SDCper_0_5,SDCper_5_10,SDCper_10_20,SDCper_10_20 = SDC(faulty, clean)
             facc = faulty_vs_ground(faulty,label)
 
             acc = faulty_vs_ground(clean,label)

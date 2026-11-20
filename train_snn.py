@@ -130,6 +130,7 @@ def main():
     p.add_argument("--data-root", default="./data")
     p.add_argument("--out", default=None, help="default models/pretrained_models/<network>.th")
     p.add_argument("--synthetic", action="store_true", help="smoke test on random data, no dataset needed")
+    p.add_argument("--faults", default=None, help="experiment file with [[train.faults]] groups: faults during training (README)")
     a = p.parse_args()
     cfg = {**DEFAULTS[a.network], **{k: v for k, v in vars(a).items()
                                      if k in ("epochs", "lr", "batch_size", "weight_decay") and v is not None}}
@@ -169,6 +170,8 @@ def main():
           f"model {model_config or 'default'} | rate reg {rate_reg} in [{a.rate_min}, {a.rate_max}] | "
           f"frozen {len(frozen)} neuron parameter tensors | device {device}")
 
+    from spikingjet.training import from_file, maybe
+    tf = maybe(from_file(a.faults, net, opt, next(iter(tr))[0].to(device), len(tr), a.seed))
     log_path = out_path.replace(".th", "_train_log.csv")
     diag_path = out_path.replace(".th", "_diag.jsonl")
     diag_f = open(diag_path, "w")
@@ -182,6 +185,7 @@ def main():
             grad_norms = []
             for x, y in tr:
                 x, y = x.to(device), y.to(device)
+                tf.before_forward(ep - 1)
                 out = net(x)
                 loss = F.cross_entropy(out, y)
                 if rate_reg > 0 and getattr(net, "layer_rates", None):
@@ -191,9 +195,10 @@ def main():
                     loss = loss + rate_reg * reg
                 opt.zero_grad(set_to_none=True)
                 loss.backward()
+                tf.after_backward()
                 grad_norms.append(float(torch.nn.utils.clip_grad_norm_(
                     [p_ for p_ in net.parameters() if p_.requires_grad], 1.0)))
-                opt.step(); sched.step(); clamp_neurons(net)
+                opt.step(); tf.after_step(); sched.step(); clamp_neurons(net)
                 loss_sum += F.cross_entropy(out.detach(), y).item() * y.numel(); total += y.numel()
                 correct += (out.argmax(1) == y).sum().item()
             rates, neuron_rates = {}, {}
@@ -215,10 +220,12 @@ def main():
                   f"val {val:6.2f}%{marker}  rates {rate_txt}  ({time.time()-t0:.0f}s)")
 
     diag_f.close()
+    tf.close()
     ckpt = torch.load(out_path, map_location=device)
     net.load_state_dict(ckpt["state_dict"])
     test = evaluate(net, te, device)
     ckpt["test_acc"] = test
+    ckpt["faults_injected"] = tf.summary()
     torch.save(ckpt, out_path)
     print(json.dumps({"network": a.network, "best_epoch": best_epoch, "val_acc": round(best, 2),
                       "test_acc": round(test, 2), "weights": out_path}, indent=2))

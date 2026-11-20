@@ -1,12 +1,16 @@
-torch>=1.13
-torchvision
-snntorch
-tonic
-numpy
-pandas
-scipy
-matplotlib
-tqdm
-h5py
-dcls==0.1.1          # only to train SHD_DELAY (train_shd_delays.py)
-pytest               # tests/
+# Same versions as the container (faulty_snn.def). Python 3.10.
+# PyTorch with CUDA: pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
+torch==2.0.1
+torchvision==0.15.2
+snntorch==0.9.1
+tonic==1.4.3
+numpy==1.24.4
+pandas==2.2.0
+scipy==1.12.0
+matplotlib==3.8.2
+h5py==3.10.0
+tqdm==4.64.1
+tomli==2.0.1         # hwfault profiles (Python < 3.11)
+pytest==8.2.0        # tests/
+# Training SHD_DELAY only (train_shd_delays.py), installed WITHOUT dependencies so it keeps torch 2.0.1:
+#   pip install --no-deps dcls==0.1.1

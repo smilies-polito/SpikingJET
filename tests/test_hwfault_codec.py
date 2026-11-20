@@ -30,7 +30,7 @@ def test_float_round_trip_is_bit_exact():
 
 
 def test_float_flip_matches_spikingjet():
-    from FaultGenerators.utils import float32_bit_flip
+    from spikingjet.bitops import float32_bit_flip
     fmt = C.Format("float", 32)
     for v in (0.731, -1.0, 2.5e-3):
         for b in (0, 13, 23, 30, 31):

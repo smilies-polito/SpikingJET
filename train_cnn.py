@@ -39,6 +39,7 @@ def main():
     ap.add_argument("--weight-decay", type=float, default=5e-4)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=None, help="default: the weights path in networks.py")
+    ap.add_argument("--faults", default=None, help="experiment file with [[train.faults]] groups: faults during training (README)")
     a = ap.parse_args()
 
     spec = NETWORKS[a.network_name]
@@ -53,20 +54,26 @@ def main():
     opt = torch.optim.SGD(net.parameters(), lr=a.lr, momentum=a.momentum, weight_decay=a.weight_decay)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs)
 
+    from spikingjet.training import from_file, maybe
+    tf = maybe(from_file(a.faults, net, opt, next(iter(train))[0].to(device), len(train), a.seed))
     best = -1.0
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     for epoch in range(a.epochs):
         net.train()
         for x, y in train:
+            tf.before_forward(epoch)
             opt.zero_grad()
             F.cross_entropy(net(x.to(device)), y.to(device)).backward()
+            tf.after_backward()
             opt.step()
+            tf.after_step()
         sched.step()
         acc = accuracy(net, test, device)
         if acc > best:
             best = acc
             torch.save({"state_dict": net.state_dict(), "epoch": epoch, "test_acc": acc}, out)
         print(f"epoch {epoch + 1}/{a.epochs}: test {acc:.2f}% (best {best:.2f}%)", flush=True)
+    tf.close()
     print(f"saved {out} (test accuracy {best:.2f}%)")
 
 

@@ -3,7 +3,8 @@
 Train SNN-Delays (Hammouamri, Khalfaoui-Hassani & Masquelier, ICLR 2024) on SHD and export the
 SpikingJET inference model SHD_DELAY (models/snn_sota.py).
 
-    pip install dcls                         # DCLS (learnable-spacing convolutions), training only
+    pip install --no-deps dcls==0.1.1        # DCLS (learnable-spacing convolutions), training only;
+                                             # already in the container built from faulty_snn.def
     python3 train_shd_delays.py --synthetic --epochs 2 --out /tmp/shd_delay_smoke.th   # smoke test
     python3 train_shd_delays.py                             # 150 epochs
 
@@ -47,7 +48,11 @@ class DclsSynapses(nn.Module):
 
     def __init__(self, n_in, n_out, kernel=SHD_DELAY_KERNEL):
         super().__init__()
-        from DCLS.construct.modules import Dcls1d
+        try:
+            from DCLS.construct.modules import Dcls1d
+        except ImportError as e:
+            raise SystemExit("train_shd_delays.py needs DCLS: use the container built from faulty_snn.def "
+                             "(README, 'Setup') or run  pip install --no-deps dcls==0.1.1") from e
         self.kernel = kernel
         self.dcls = Dcls1d(n_in, n_out, kernel_count=1, groups=1, dilated_kernel_size=kernel,
                            bias=False, version="gauss")
@@ -126,6 +131,7 @@ def main():
     p.add_argument("--data-root", default="./data")
     p.add_argument("--out", default="models/pretrained_models/SHD_DELAY.th")
     p.add_argument("--synthetic", action="store_true")
+    p.add_argument("--faults", default=None, help="experiment file with [[train.faults]] groups: faults during training (README)")
     p.add_argument("--val-speakers", type=int, nargs="*", default=None,
                    help="speaker-disjoint validation: these training speakers form the validation set "
                         "and are removed from training (default: random 10%% split)")
@@ -165,6 +171,8 @@ def main():
     n_w = sum(w.numel() for w in weights)
     print(f"SNN-Delays on SHD | {n_w:,} synaptic weights + {n_w:,} delay positions | {cfg} | device {dev}")
 
+    from spikingjet.training import from_file, maybe
+    tf = maybe(from_file(a.faults, net, [opt_w, opt_p], next(iter(tr))[0].to(dev), len(tr), a.seed))
     log_path = a.out.replace(".th", "_train_log.csv")
     best, best_ep = -1.0, 0
     with open(log_path, "w", newline="") as f:
@@ -176,15 +184,18 @@ def main():
             loss_sum = correct = total = 0
             for x, y in tr:
                 x, y = x.to(dev), y.to(dev)
+                tf.before_forward(ep)
                 out = net(x)                                  # sum_t softmax(v_t)
                 loss = F.cross_entropy(out, y)
                 opt_w.zero_grad(set_to_none=True)
                 opt_p.zero_grad(set_to_none=True)
                 loss.backward()
+                tf.after_backward()
                 opt_w.step()
                 opt_p.step()
                 for s in syn:
                     s.dcls.clamp_parameters()
+                tf.after_step()
                 loss_sum += loss.item() * y.numel()
                 total += y.numel()
                 correct += (out.argmax(1) == y).sum().item()
@@ -213,7 +224,9 @@ def main():
             print(f"[{ep + 1:3d}/{cfg['epochs']}] loss {loss_sum / total:.4f} train {100 * correct / total:6.2f}% "
                   f"val {val:6.2f}%{mark}  sigma {sig:.3f}  ({time.time() - t0:.0f}s)", flush=True)
 
+    tf.close()
     ck = torch.load(a.out, map_location=dev)
+    ck["faults_injected"] = tf.summary()
     inf = SHD_DELAY(hidden=cfg["hidden"], dropout=cfg["dropout"]).to(dev)
     inf.load_state_dict(ck["state_dict"], strict=True)
     ck["test_acc"] = evaluate(inf, te, dev)

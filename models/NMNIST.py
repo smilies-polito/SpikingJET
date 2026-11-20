@@ -6,7 +6,6 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch
 
-# from FaultGenerators.utils import float32_bit_flip
 
 class NMNIST(nn.Module):
     def __init__(self):

@@ -35,12 +35,10 @@ from __future__ import annotations
 
 import argparse
 import csv
-import math
 import os
 import sys
 import time
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -57,27 +55,12 @@ DEFAULT_BERS = [1e-8, 3e-8, 1e-7, 3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4]
 
 
 # ----------------------------------------------------------------------------
-# Fault population
+# Fault population (the injection itself is spikingjet's engine)
 # ----------------------------------------------------------------------------
 def fault_population(model: nn.Module, scope: str):
-    """Ordered list of (name, parameter) that can receive faults."""
-    params = list(model.named_parameters())
-    if scope == "all":
-        return params
-    classes = [nn.Conv2d, nn.Linear]
-    try:
-        import snntorch as snn
-        classes += [snn.Leaky, snn.Synaptic]
-    except ImportError:
-        pass
-    top = {name.split(".")[0] for name, m in model.named_modules()
-           if name and isinstance(m, tuple(classes))}
-    return [(n, p) for n, p in params if n.split(".")[0] in top]
-
-
-def _to_int32(x: torch.Tensor) -> torch.Tensor:
-    """uint32 bit pattern held in int64 -> same bits as int32 (bit 31 becomes the sign)."""
-    return torch.where(x >= 2 ** 31, x - 2 ** 32, x).to(torch.int32)
+    """Ordered list of parameter sites that can receive faults (spikingjet.sites.param_sites)."""
+    from spikingjet.sites import param_sites
+    return param_sites(model, scope)
 
 
 def split_tmr(population):
@@ -86,100 +69,26 @@ def split_tmr(population):
     The rest (with copy 0 in the position of the original layer) has exactly the shapes and order
     of the plain network's population, so it receives the SAME fault map as the plain network
     (paired comparison). The two extra copies get their own, independent faults at the same BER."""
-    extra = [(n, p) for n, p in population if ".copies.1." in n or ".copies.2." in n]
-    base = [(n, p) for n, p in population if not (".copies.1." in n or ".copies.2." in n)]
+    extra = [s for s in population if ".copies.1." in s.name or ".copies.2." in s.name]
+    base = [s for s in population if not (".copies.1." in s.name or ".copies.2." in s.name)]
     return base, extra
-
-
-class BitErrorInjector:
-    """Applies one fault map to a list of float32 parameters and restores it exactly."""
-
-    def __init__(self, population, mode: str = "bit-flip"):
-        self.population = population
-        self.sizes = np.array([p.numel() for _, p in population], dtype=np.int64)
-        self.offsets = np.concatenate([[0], np.cumsum(self.sizes)])
-        self.n_elems = int(self.offsets[-1])
-        self.mode = mode
-        self._saved = []
-        for n, p in population:
-            if p.dtype != torch.float32:
-                raise TypeError(f"{n} is {p.dtype}; only float32 parameters are supported")
-
-    def sample(self, ber: float, bit_lo: int, bit_hi: int, rng: np.random.Generator):
-        """Faults on the contiguous bit range bit_lo..bit_hi."""
-        return self.sample_bits(ber, np.arange(bit_lo, bit_hi + 1), rng)
-
-    def sample_bits(self, ber: float, bits, rng: np.random.Generator):
-        """Every (element, bit) position with bit in `bits` fails independently with
-        probability `ber`. Returns (element index, bit, stuck value) arrays."""
-        bits = np.asarray(bits, dtype=np.int64)
-        nb = bits.size
-        total_bits = self.n_elems * nb
-        n = int(rng.binomial(total_bits, ber)) if ber > 0 else 0
-        if n == 0:
-            return np.empty(0, np.int64), np.empty(0, np.int64), np.empty(0, np.int64)
-        flat = rng.integers(0, total_bits, size=n, dtype=np.int64)
-        flat = np.unique(flat)                     # collisions are negligible; avoids double flips
-        elem = flat // nb
-        bit = bits[flat % nb]
-        values = rng.integers(0, 2, size=elem.size, dtype=np.int64)   # used by stuck-at only
-        return elem, bit, values
-
-    @torch.no_grad()
-    def apply(self, elem, bit, values):
-        self._saved = []
-        if elem.size == 0:
-            return
-        which = np.searchsorted(self.offsets, elem, side="right") - 1
-        for k in np.unique(which):
-            sel = which == k
-            _, p = self.population[k]
-            local = torch.as_tensor(elem[sel] - self.offsets[k], device=p.device)
-            ints = p.data.view(-1).view(torch.int32)
-            # (element, bit) pairs are unique, so several faults on one element touch different
-            # bits and their masks can be combined by summation (sum == OR == XOR here).
-            m = torch.as_tensor(np.left_shift(np.int64(1), bit[sel]), device=p.device)
-            uniq, inv = torch.unique(local, return_inverse=True)
-            self._saved.append((ints, uniq, ints[uniq].clone()))
-            if self.mode == "bit-flip":
-                flip = torch.zeros(uniq.numel(), dtype=torch.int64, device=p.device).index_add_(0, inv, m)
-                ints[uniq] = ints[uniq] ^ _to_int32(flip)
-            else:                                       # stuck-at-1 sets the bit, stuck-at-0 clears it
-                v = torch.as_tensor(values[sel], device=p.device)
-                zeros = torch.zeros(uniq.numel(), dtype=torch.int64, device=p.device)
-                set_m = zeros.clone().index_add_(0, inv, m * v)
-                clr_m = zeros.clone().index_add_(0, inv, m * (1 - v))
-                ints[uniq] = (ints[uniq] | _to_int32(set_m)) & ~_to_int32(clr_m)
-
-    @torch.no_grad()
-    def restore(self):
-        for ints, idx, orig in self._saved:
-            ints[idx] = orig
-        self._saved = []
 
 
 # ----------------------------------------------------------------------------
 # Evaluation
 # ----------------------------------------------------------------------------
-@torch.no_grad()
 def evaluate(model, loader, device):
-    correct = total = nonfinite = 0
-    for x, y in loader:
-        out = model(x.to(device))
-        bad = ~torch.isfinite(out).all(dim=1)
-        pred = out.argmax(1).cpu()
-        pred[bad.cpu()] = -1                       # a non-finite output is never correct
-        correct += (pred == y).sum().item()
-        nonfinite += bad.sum().item()
-        total += y.numel()
-    return 100.0 * correct / total, 100.0 * nonfinite / total
+    """(accuracy %, % of non-finite outputs); a non-finite output is never correct."""
+    from spikingjet.ber import evaluate as _evaluate
+    return _evaluate(model, loader, device)
 
 
 def get_loader(network, batch_size, synthetic=False):
-    if synthetic:
-        g = torch.Generator().manual_seed(0)
-        x = torch.randn(64, 3, 32, 32, generator=g)
-        y = torch.randint(0, 10, (64,), generator=g)
+    if synthetic:                                  # random batch shaped like the network's input
+        from networks import NETWORKS, synthetic_batch
+        x, y = synthetic_batch(network, 64)
+        if NETWORKS[network].example.time_first:   # [T, B, ...]: one batch, already in model order
+            return [(x, y)]
         return torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x, y), batch_size=batch_size)
     from networks import get_loader as registry_loader
     return registry_loader(network, "test", batch_size)
@@ -216,42 +125,39 @@ def main():
         model = load_network(name, device)
         model.eval()
         loader = get_loader(name, a.batch_size, a.synthetic)
+        from spikingjet.faults import ParamBER
+        from spikingjet.injector import Injector
+        from spikingjet.sites import SiteTable
         pop, extra_pop = split_tmr(fault_population(model, a.scope))
-        inj = BitErrorInjector(pop, a.mode)
-        inj_x = BitErrorInjector(extra_pop, a.mode) if extra_pop else None
+        stuck = a.mode == "stuck-at"
+        inj = Injector(model, SiteTable(pop + extra_pop, [], []), hook_activations=False)
+        base, extra = ParamBER(pop), (ParamBER(extra_pop) if extra_pop else None)
         clean, _ = evaluate(model, loader, device)
-        print(f"{name}: {inj.n_elems:,} parameters in the fault population"
-              + (f" + {inj_x.n_elems:,} in the extra TMR copies (faulted independently)" if inj_x else "")
+        print(f"{name}: {base.n_elems:,} parameters in the fault population"
+              + (f" + {extra.n_elems:,} in the extra TMR copies (faulted independently)" if extra else "")
               + f", clean {clean:.2f}%")
 
         for bits in a.bits:
-            lo, hi = BIT_RANGES[bits]
             for ber in a.bers:
                 for r in range(a.realizations):
                     # same (seed, bits, ber, r) -> same fault map for every model with the same parameters
-                    key = (a.seed, lo, hi, int(round(-math.log10(ber) * 1000)), r, a.mode == "stuck-at")
-                    rng = np.random.default_rng(np.random.SeedSequence([int(v) for v in key]))
-                    elem, bit, vals = inj.sample(ber, lo, hi, rng)
-                    n_f = elem.size
                     t0 = time.time()
-                    inj.apply(elem, bit, vals)
-                    if inj_x:
-                        rng_x = np.random.default_rng(np.random.SeedSequence([int(v) for v in key] + [7]))
-                        ex, bx, vx = inj_x.sample(ber, lo, hi, rng_x)
-                        inj_x.apply(ex, bx, vx)
-                        n_f += ex.size
+                    arrays = base.sample(ber, bits, ParamBER.rng_for(a.seed, bits, ber, r, stuck), stuck)
+                    if extra:
+                        arrays += extra.sample(ber, bits, ParamBER.rng_for(a.seed, bits, ber, r, stuck, (7,)), stuck)
+                    n_f = sum(len(x[1]) for x in arrays)
+                    inj.apply_param_arrays(arrays)
                     try:
                         acc, nf = evaluate(model, loader, device)
                     finally:
-                        inj.restore()
-                        if inj_x:
-                            inj_x.restore()
+                        inj.restore_params()
                     # n_params = the paired (base) population, so ber_report pairs TMR rows with the plain network
-                    w.writerow([name, a.mode, a.scope, bits, ber, r, n_f, inj.n_elems,
+                    w.writerow([name, a.mode, a.scope, bits, ber, r, n_f, base.n_elems,
                                 f"{clean:.4f}", f"{acc:.4f}", f"{nf:.4f}", f"{time.time() - t0:.1f}"])
                     f.flush()
                 print(f"  {bits:9s} BER {ber:.0e}: last realization {acc:6.2f}% "
                       f"({n_f} faults, {nf:.1f}% non-finite outputs)")
+        inj.detach()
         # sanity: the restore must be exact
         after, _ = evaluate(model, loader, device)
         if abs(after - clean) > 1e-9:

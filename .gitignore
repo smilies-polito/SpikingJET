@@ -1,10 +1,18 @@
-# datasets, caches and campaign results (created at run time)
-data/
-cache/
-output/
-ber_results/
-hw_results/
+# datasets, caches and results created at run time (repository root only: tests/data/ is tracked)
+/data/
+/cache/
+/output/
+/ber_results/
+/hw_results/
+
+# training logs and diagnostics written next to the checkpoints
+models/pretrained_models/*_train_log.csv
+models/pretrained_models/*_diag.jsonl
+
+# container image (build it from faulty_snn.def)
 *.sif
+
+# Python
 __pycache__/
 *.pyc
 .pytest_cache/

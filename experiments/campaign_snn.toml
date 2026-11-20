@@ -1,0 +1,12 @@
+# Single-fault campaign on an SNN: weights + neuron states, bit-flips, transient neuron faults.
+#   python spikingjet.py campaign --config experiments/campaign_snn.toml
+network = "SHD_DELAY"
+batch_size = 64
+
+[campaign]
+fault_model = "bit-flip"           # stuck-at | bit-flip
+targets = ["params", "neurons"]    # params | neurons | activations
+neuron_persistence = "transient"   # transient: one random timestep | permanent: every timestep
+seed = 51196
+error_margin = 0.03                # DATE'09: 3 % margin ...
+confidence = 2.58                  # ... at 99 % confidence

@@ -1,0 +1,41 @@
+# Faults in the training hardware: what does the training converge to when its memories are faulty?
+#   python spikingjet.py train --config experiments/train_resilience.toml
+network = "NMNIST_HYBRID"
+batch_size = 128
+out = "output/train_resilience/NMNIST_HYBRID.th"
+
+[train]
+epochs = 5
+optimizer = "adamw"
+lr = 2e-3
+
+[[train.faults]]                   # stuck cells in the weight memory, from the start
+target = "params"
+fault_model = "stuck-at"
+bits = "all"
+ber = 1e-5
+persistence = "permanent"          # re-applied after every update
+
+[[train.faults]]                   # single-event upsets in the weight memory, from epoch 1
+target = "params"
+fault_model = "bit-flip"
+ber = 1e-7
+persistence = "upset"              # flipped once, stays until the optimizer rewrites it
+start_epoch = 1
+
+[[train.faults]]                   # faulty gradient computation, 10 % of the steps
+target = "grads"
+bits = "exponent"
+ber = 1e-6
+prob = 0.1
+
+[[train.faults]]                   # upsets in the Adam moment buffers
+target = "optimizer"
+ber = 1e-6
+persistence = "upset"
+
+[[train.faults]]                   # faulty neuron updates in the spiking layers
+target = "neurons"
+select = ["lif1.potential"]
+ber = 1e-5
+persistence = "transient"
