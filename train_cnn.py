@@ -55,7 +55,7 @@ def main():
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs)
 
     from spikingjet.training import from_file, maybe
-    tf = maybe(from_file(a.faults, net, opt, next(iter(train))[0].to(device), len(train), a.seed))
+    tf = maybe(from_file(a.faults, net, opt, next(iter(train))[0].to(device) if a.faults else None, len(train), a.seed))
     best = -1.0
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     for epoch in range(a.epochs):
