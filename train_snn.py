@@ -171,7 +171,7 @@ def main():
           f"frozen {len(frozen)} neuron parameter tensors | device {device}")
 
     from spikingjet.training import from_file, maybe
-    tf = maybe(from_file(a.faults, net, opt, next(iter(tr))[0].to(device), len(tr), a.seed))
+    tf = maybe(from_file(a.faults, net, opt, next(iter(tr))[0].to(device) if a.faults else None, len(tr), a.seed))
     log_path = out_path.replace(".th", "_train_log.csv")
     diag_path = out_path.replace(".th", "_diag.jsonl")
     diag_f = open(diag_path, "w")
